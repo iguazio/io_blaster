@@ -1,0 +1,91 @@
+{
+	"workloads" : 
+	[		
+		{
+			"name" : "workload_get_items",	
+			"allowed_status" : 
+			[
+				"200"				
+			],		
+			"start_time" : 0,
+			"duration" : 1,
+			"workers" : 2,
+			"end_on_var_value" :
+			{
+				"LastItemIncluded" : 
+				{
+					"type" : "CONST",
+					"op" : "==",
+					"value" : "TRUE"
+				}
+			},
+			"vars" :
+			{				
+				"response_value" :
+				{
+					"LastItemIncluded" :
+					{												
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : 
+						{
+							"type" : "CONST",
+							"value" : "FALSE"
+						},
+						"field_path" : 
+						[
+							"LastItemIncluded"
+						]
+					},
+					"NextMarker" :
+					{												
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : "",
+						"field_path" : 
+						[
+							"NextMarker"
+						]
+					}
+				}
+			},			
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},				
+				"url" : 
+				{
+					"type" : "CONST",
+					"value" : "http://127.0.0.1:8081/1/test_table/"					
+				},
+				"headers" :
+				{
+					"ngx-guid" : 
+					{
+						"type" : "VAR",
+						"var_name" : "io_blaster_uid"						
+					},
+					"X-v3io-function" :
+					{
+						"type" : "CONST",
+						"value" : "GetItems"
+					}
+				},
+				"body" : 
+				{
+					"type" : "FORMAT",
+					"format" : "{'AttributesToGet': '__name', 'Segment': %d, 'TotalSegment': 2, 'Marker': '%s', 'Limit': 1}",
+					"args" : ["io_blaster_worker_id", "NextMarker"]
+				}			
+			}						
+		}
+	]	
+}

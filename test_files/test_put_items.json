@@ -1,0 +1,51 @@
+{
+	"workloads" : 
+	[		
+		{
+			"name" : "workload_put_items",	
+			"allowed_status" : 
+			[
+				"200"
+			],		
+			"start_time" : 0,
+			"duration" : 10000,
+			"workers" : 16,		
+			"vars" :
+			{
+				"enum" :
+				{
+					"workload_sim_each" :
+					{
+						"file_id" :
+						{							
+							"min_value" : 0							
+						}
+					}
+				}
+			},
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},						
+				"url" : 
+				{
+					"type" : "FORMAT",
+					"format" : "http://127.0.0.1:8081/1/test_table/file_%d",
+					"args" : ["file_id"]
+				},
+				"headers" :
+				{					
+				},
+				"body" :
+				{
+					"type" : "CONST",
+					"value" : "hello world"
+				}
+			}						
+		}
+	]	
+}

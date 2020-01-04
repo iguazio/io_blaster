@@ -1,0 +1,109 @@
+{
+	"workloads" : 
+	[				
+		{
+			"name" : "workload_get_items",	
+			"allowed_status" : 
+			[
+				"200"				
+			],		
+			"start_time" : 0,
+			"duration" : 500000000,			
+			"end_on_var_value" :
+			{
+				"LastItemIncluded" : 
+				{
+					"type" : "CONST",
+					"op" : "==",
+					"value" : "TRUE"					
+				}
+			},
+			"workers" : 36,			
+			"vars" :
+			{				
+				"response_value" :
+				{
+					"LastItemIncluded" :
+					{												
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : 
+						{
+							"type" : "CONST",
+							"value" : "FALSE"
+						},
+						"field_path" : 
+						[
+							"LastItemIncluded"
+						]
+					},
+					"NextMarker" :
+					{												
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : "",
+						"field_path" : 
+						[
+							"NextMarker"
+						]
+					}
+				},
+				"random" :
+				{
+					"worker_once" :
+					{
+						"app_node" :
+						{
+							"type" : "INT",
+							"min_value" : 114,
+							"max_value" : 116
+						}						
+					}
+				}
+			},			
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},				
+				"url" : 
+				{					
+					"type" : "FORMAT",
+					"format" : "http://192.168.228.%d:8085/bigdata/perf/",
+					"args" : ["app_node"]				
+				},
+				"headers" :
+				{
+					"ngx-guid" : 
+					{
+						"type" : "VAR",
+						"var_name" : "io_blaster_uid"						
+					},
+					"X-v3io-function" :
+					{
+						"type" : "CONST",
+						"value" : "GetItems"
+					},
+					"Authorization" :
+					{
+						"type" : "CONST",
+						"value" : "Basic aWd1YXppbzpkYXRhbEBrZSE="
+					}
+				},
+				"body" : 
+				{
+					"type" : "FORMAT",
+					"format" : "{'AttributesToGet': '__name', 'Segment': %d, 'TotalSegment': 36, 'Marker': '%s'}",
+					"args" : ["io_blaster_worker_id", "NextMarker"]
+				}			
+			}						
+		}
+	]	
+}

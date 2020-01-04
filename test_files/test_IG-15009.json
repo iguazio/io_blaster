@@ -1,0 +1,119 @@
+{
+	"workloads" : 
+	[
+		{
+			"name" : "workload_put_1",	
+			"allowed_status" : 
+			[
+				"200"
+			],		
+			"start_time" : 0,
+			"duration" : 60,
+			"workers" : 16,		
+			"vars" :
+			{
+				"enum" :
+				{
+					"on_time" :
+					{
+						"file_id" :
+						{
+							"interval" : 1,
+							"min_value" : 0							
+						}
+					}
+				}
+			},
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},						
+				"url" : 
+				{
+					"type" : "FORMAT",
+					"format" : "http://127.0.0.1:8081/1/file_%d",
+					"args" : ["file_id"]
+				},
+				"headers" :
+				{					
+				},
+				"body" :
+				{
+					"type" : "CONST",
+					"value" : "hello world"
+				}
+			}						
+		},
+		{
+			"name" : "workload_get_1",	
+			"allowed_status" : 
+			[
+				"200",
+				"404"
+			],		
+			"start_time" : 0,
+			"duration" : 60,
+			"workers" : 16,
+			"vars" :
+			{
+				"enum" :
+				{
+					"on_time" :
+					{
+						"file_id" :
+						{
+							"interval" : 1,
+							"min_value" : 0
+						}
+					}
+				},
+				"response_value" :
+				{
+					"response_body" :
+					{						
+						"type" : "BLOB",
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : "",
+						"expected_values" :
+						[						
+							{
+								"type" : "CONST",
+								"value" : "hello world"
+							}
+						]
+					}				
+				}
+			},			
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "GET"
+				},				
+				"url" : 
+				{
+					"type" : "FORMAT",
+					"format" : "http://127.0.0.1:8081/1/file_%d",
+					"args" : ["file_id"]
+				},
+				"headers" :
+				{
+					"ngx-guid" : 
+					{
+						"type" : "VAR",
+						"var_name" : "io_blaster_uid"						
+					}
+				}				
+			}						
+		}
+	]	
+}

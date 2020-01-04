@@ -1,0 +1,42 @@
+{
+	"workloads" : 
+	[
+		{
+			"name" : "workload_1",
+			"allowed_status" : 
+			[
+				"200"
+			],			
+			"start_time" : 0,
+			"duration" : 10,
+			"workers" : 64,			
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},				
+				"url" : 
+				{
+					"type" : "CONST",
+					"value" : "http://127.0.0.1:8081/1/r_1"					
+				},
+				"headers" :
+				{
+					"Authorization" :
+					{
+						"type" : "CONST",
+						"value" : "Basic aWd1YXppbzpkYXRhbEBrZSE="
+					}
+				},
+				"body" :
+				{
+					"type" : "CONST",
+					"var_name" : "hello world"
+				}
+			}						
+		}
+	]	
+}

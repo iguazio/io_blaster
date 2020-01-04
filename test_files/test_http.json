@@ -1,0 +1,141 @@
+{
+	"workloads" : 
+	[
+		{
+			"name" : "workload_1",	
+			"allowed_status" : 
+			[
+				"200"
+			],
+			"start_time" : 0,
+			"duration" : 1,
+			"depends_on_workload": 
+			[
+
+			],
+			"end_on_var_value" :
+			{
+
+			},
+			"workers" : 1,			
+			"vars" : 			
+			{	
+				"__vars_comment" : "vars already contain the following vars by default: io_blaster_uid (unique id for each request), io_blaster_worker_id (worker id starting from 0)",
+				"const" :
+				{
+					"container_name" : 
+					{					
+						"value" : "1"
+					}
+				},				
+				"file" : 
+				{
+					"request_body" : 
+					{
+						"path" : "test_files/payload.txt"
+					}
+				},
+				"random" :
+				{
+					"once" :
+					{
+						"dir_name" :
+						{
+							"type" : "STRING",
+							"length" : 20
+						}
+					},
+					"worker_once" :
+					{						
+					},
+					"each" :
+					{
+						"file_name" :
+						{
+							"type" : "INT",
+							"min_value" : 0,
+							"max_value" : 100
+						}
+					},
+					"on_time" : 
+					{
+
+					},
+					"on_interval" : 
+					{
+
+					}
+				},
+				"enum" : 
+				{					
+					"workload_sim_each" :
+					{
+						"file_number" :
+						{
+							"min_value" : 0
+						}
+					},
+					"worker_each" :
+					{
+
+					},
+					"on_time" : 
+					{
+
+					},
+					"on_interval" : 
+					{						
+					}
+				},
+				"response_value" :
+				{
+					"response_body" :
+					{
+						"field_path_comment" : "incase of JSON response should contain field path in this foramt: the json field a.b should be written ['a', 'b']. see https://godoc.org/github.com/jmoiron/jsonq for more info",						
+						"update_on_status" : 
+						[
+							"200"
+						],
+						"field_path" : [],
+						"init_value" : "",						
+						"expected_values" :
+						[						
+							{
+								"type" : "CONST",
+								"value" : ""
+							}
+						]
+					}				
+				}
+			},
+			"type" : "HTTP",
+			"http_config" : 
+			{				
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},				
+				"url" : 
+				{
+					"type" : "FORMAT",
+					"format" : "http://127.0.0.1:8081/%s/%s/file_%d.%d",
+					"args" : ["container_name", "dir_name", "file_name", "file_number"]
+				},
+				"headers" :
+				{
+					"Content-Type" :
+					{
+						"type" : "CONST",
+						"value" : "application/json"
+					}
+				},
+				"body" :
+				{
+					"type" : "VAR",
+					"var_name" : "request_body"
+				}
+			}						
+		}
+	]	
+}

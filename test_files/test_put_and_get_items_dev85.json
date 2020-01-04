@@ -1,0 +1,187 @@
+{
+	"workloads" : 
+	[		
+		{
+			"name" : "workload_put_items",	
+			"allowed_status" : 
+			[
+				"200",
+				"204"
+			],		
+			"start_time" : 0,
+			"duration" : 50000000,
+			"end_on_var_value" :
+			{
+				"file_id" : 
+				{
+					"type" : "CONST",
+					"op" : ">=",
+					"value" : 50000000
+				}
+			},
+			"workers" : 1024,
+			"vars" :
+			{
+				"enum" :
+				{
+					"workload_sim_each" :
+					{
+						"file_id" :
+						{							
+							"min_value" : 0
+						}
+					}
+				},
+				"random" :
+				{
+					"worker_once" :
+					{
+						"app_node" :
+						{
+							"type" : "INT",
+							"min_value" : 8,
+							"max_value" : 10
+						}						
+					}
+				}
+			},
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},						
+				"url" : 
+				{					
+					"type" : "FORMAT",
+					"format" : "http://192.168.204.%d:8085/bigdata/perf/",
+					"args" : ["app_node"]				
+				},
+				"headers" :
+				{
+					"X-v3io-function" :
+                    {
+						"type" : "CONST",
+						"value" : "PutItem"
+					},
+					"Authorization" :
+					{
+						"type" : "CONST",
+						"value" : "Basic aWd1YXppbzpkYXRhbEBrZSE="
+					}
+				},
+				"body" :
+				{
+					"type" : "FORMAT",
+					"format" : "{'Key':{'name' :{'S': 'file_%d'}}, 'Item':{'str_1' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_2' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_3' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_4' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_5' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_6' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_7' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_8' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_9' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}, 'str_10' : {'S': '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'}}}",
+					"args" : ["file_id"]
+				}
+			}						
+		},
+		{
+			"name" : "workload_get_items",	
+			"allowed_status" : 
+			[
+				"200"				
+			],		
+			"start_time" : 0,
+			"duration" : 500000000,
+			"depends_on_workload": 
+			[
+				"workload_put_items"
+			],
+			"end_on_var_value" :
+			{
+				"LastItemIncluded" : 
+				{
+					"type" : "CONST",
+					"op" : "==",
+					"value" : "TRUE"					
+				}
+			},
+			"workers" : 36,			
+			"vars" :
+			{				
+				"response_value" :
+				{
+					"LastItemIncluded" :
+					{												
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : 
+						{
+							"type" : "CONST",
+							"value" : "FALSE"
+						},
+						"field_path" : 
+						[
+							"LastItemIncluded"
+						]
+					},
+					"NextMarker" :
+					{												
+						"update_on_status" : 
+						[
+							"200"
+						],						
+						"init_value" : "",
+						"field_path" : 
+						[
+							"NextMarker"
+						]
+					}
+				},
+				"random" :
+				{
+					"worker_once" :
+					{
+						"app_node" :
+						{
+							"type" : "INT",
+							"min_value" : 8,
+							"max_value" : 10
+						}						
+					}
+				}
+			},			
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},				
+				"url" : 
+				{					
+					"type" : "FORMAT",
+					"format" : "http://192.168.204.%d:8085/bigdata/perf/",
+					"args" : ["app_node"]				
+				},
+				"headers" :
+				{
+					"X-v3io-function" :
+					{
+						"type" : "CONST",
+						"value" : "GetItems"
+					},
+					"Authorization" :
+					{
+						"type" : "CONST",
+						"value" : "Basic aWd1YXppbzpkYXRhbEBrZSE="
+					}
+				},
+				"body" : 
+				{
+					"type" : "FORMAT",
+					"format" : "{'AttributesToGet': '__name', 'Segment': %d, 'TotalSegment': 36, 'Marker': '%s'}",
+					"args" : ["io_blaster_worker_id", "NextMarker"]
+				}			
+			}						
+		}
+	]	
+}
