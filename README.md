@@ -8,9 +8,9 @@ io_blaster is still a work in progress and currently contain only HTTP IO worklo
 In the future the tool will be able to run remote shell IO as well and possibly other flows as well.
 
 ### install
-go get github.com/iguazio/io_blaster
-cd $GOPATH/src/github.com/iguazio/io_blaster
-go build
+* go get github.com/iguazio/io_blaster
+* cd $GOPATH/src/github.com/iguazio/io_blaster
+* go build
 
 ### guide
 ##### how to run
