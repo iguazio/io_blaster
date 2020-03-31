@@ -1,11 +1,10 @@
 # io_blaster
 
 ### about
-io_blaster is a tool designed to run extreamly fast IO in order to run stress tests.
-It was also designed to have great control on the IO scheduling and content in order to be able to create various scnearios with ease.
+io_blaster is a tool designed to run extremely fast IO in order to run stress tests.
+It was also designed to have great control on the IO scheduling and content in order to be able to create various scenarios with ease.
 
-io_blaster is still a work in progress and currently contain only HTTP IO workloads.
-In the future the tool will be able to run remote shell IO as well and possibly other flows as well.
+io_blaster is still a work in progress and currently contain only HTTP, remote shell IO workloads.
 
 ### install
 * go get github.com/iguazio/io_blaster
