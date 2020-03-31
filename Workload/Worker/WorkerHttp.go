@@ -30,12 +30,9 @@ func (worker *WorkerHttp) Init(config *Config.ConfigIoBlaster, configWorkload *C
 	}
 }
 
-func (worker *WorkerHttp) RunIO() {
+func (worker *WorkerHttp) InitIO() {
 	worker.request = fasthttp.AcquireRequest()
 	worker.response = fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseRequest(worker.request)
-	defer fasthttp.ReleaseResponse(worker.response)
-
 	method := worker.ParseField(worker.configWorkload.HttpConfig.Method).(string)
 	url := worker.ParseField(worker.configWorkload.HttpConfig.Url).(string)
 	body := worker.ParseField(worker.configWorkload.HttpConfig.Body).(string)
@@ -45,34 +42,39 @@ func (worker *WorkerHttp) RunIO() {
 		worker.request.Header.Add(headerName, fmt.Sprintf("%v", worker.ParseField(headerConfig)))
 	}
 	worker.request.SetBodyString(body)
+}
 
-	startTime := time.Now()
+func (worker *WorkerHttp) SendIO() {
 	if err := worker.httpClient.DoTimeout(worker.request, worker.response, 120*time.Second); err != nil {
-		log.Panicln(fmt.Sprintf("workload=%s worker=%d url=%s failed to send request. err=%s", worker.configWorkload.Name, worker.workerIndex, url, err.Error()))
-	} else {
-		latency := time.Now().Sub(startTime).Nanoseconds() / 1000
-		statusStr := strconv.Itoa(worker.response.StatusCode())
-
-		log.Debugln(fmt.Sprintf("workload=%s worker=%d url=%s status=%d latency=%d", worker.configWorkload.Name, worker.workerIndex, url, worker.response.StatusCode(), latency))
-
-		worker.UpdateStats(statusStr, latency)
-
-		if _, ok := worker.configWorkload.AllowedStatusMap[statusStr]; !ok {
-			log.Panicln(fmt.Sprintf("workload=%s worker=%d got unallowed status request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.request, worker.response))
-		}
-
-		worker.UpdateResponseVars(statusStr, string(worker.response.Body()))
+		worker.PanicLogCurrentIO(err)
 	}
 }
 
-func (worker *WorkerHttp) DebugLogCurrentIO(err error) {
-	log.Debugln(fmt.Sprintf("%s request=\n%+v\n\nresponse=\n%+v\n", err.Error(), worker.request, worker.response))
+func (worker *WorkerHttp) GetIOStatus() string {
+	return strconv.Itoa(worker.response.StatusCode())
 }
 
-func (worker *WorkerHttp) WarnLogCurrentIO(err error) {
-	log.Warnln(fmt.Sprintf("%s request=\n%+v\n\nresponse=\n%+v\n", err.Error(), worker.request, worker.response))
+func (worker *WorkerHttp) GetIOResponseData() string {
+	return string(worker.response.Body())
+}
+
+func (worker *WorkerHttp) FreeIO() {
+	defer fasthttp.ReleaseRequest(worker.request)
+	defer fasthttp.ReleaseResponse(worker.response)
+}
+
+func (worker *WorkerHttp) DebugLogCurrentIO(err error) {
+	if err != nil {
+		log.Debugln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d err=%s request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, err.Error(), worker.request, worker.response))
+	} else {
+		log.Debugln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, worker.request, worker.response))
+	}
 }
 
 func (worker *WorkerHttp) PanicLogCurrentIO(err error) {
-	log.Panicln(fmt.Sprintf("%s request=\n%+v\n\nresponse=\n%+v\n", err.Error(), worker.request, worker.response))
+	if err != nil {
+		log.Panicln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d err=%s request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, err.Error(), worker.request, worker.response))
+	} else {
+		log.Panicln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, worker.request, worker.response))
+	}
 }

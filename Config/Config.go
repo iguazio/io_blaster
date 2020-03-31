@@ -107,6 +107,13 @@ type ConfigHttp struct {
 	Body    *ConfigField            `json:"body"`
 }
 
+type ConfigShell struct {
+	User     *ConfigField `json:"user"`
+	Password *ConfigField `json:"password"`
+	Host     *ConfigField `json:"host"`
+	Cmd      *ConfigField `json:"cmd"`
+}
+
 type ConfigWorkload struct {
 	Name                 string `json:"name"`
 	WorkloadObj          interface{}
@@ -122,6 +129,7 @@ type ConfigWorkload struct {
 	Vars                 *ConfigVars             `json:"vars"`
 	Type                 string                  `json:"type"`
 	HttpConfig           *ConfigHttp             `json:"http_config"`
+	ShellConfig          *ConfigShell            `json:"shell_config"`
 }
 
 type ConfigIoBlaster struct {

@@ -21,10 +21,14 @@ type IWorker interface {
 	GetRealStartTimeNsec() int64
 	GetRealEndTimeNsec() int64
 	DebugLogCurrentIO(err error)
-	WarnLogCurrentIO(err error)
 	PanicLogCurrentIO(err error)
 	Run()
 	RunIO()
+	InitIO()
+	SendIO()
+	GetIOStatus() string
+	GetIOResponseData() string
+	FreeIO()
 	CalculateNextVars()
 	ParseField(fieldConfig *Config.ConfigField) interface{}
 }
@@ -41,6 +45,8 @@ type WorkerBase struct {
 	realEndTimeNsec             int64
 	calculatedWorkloadConstVars Config.CalculatedVars
 	calculatedVars              Config.CalculatedVars
+	currentIOStatus             string
+	currentIOLatency            int64
 }
 
 func (worker *WorkerBase) Init(config *Config.ConfigIoBlaster, configWorkload *Config.ConfigWorkload, workloadIndex int64, workerIndex int64, calculatedWorkloadConstVars Config.CalculatedVars) {
@@ -88,7 +94,7 @@ func (worker *WorkerBase) Run() {
 		if !shouldRun {
 			break
 		}
-		worker.worker.RunIO()
+		worker.RunIO()
 		worker.currentRunTime = atomic.LoadInt64(&worker.config.CurrentRunTime)
 		worker.CalculateNextVars()
 		shouldRun = worker.currentRunTime < endTime
@@ -98,23 +104,22 @@ func (worker *WorkerBase) Run() {
 }
 
 func (worker *WorkerBase) RunIO() {
-	/*
-		// parse required fields
-		// take start time
-		// run the IO
-		// take end time
-		worker.UpdateStats()
-		if _, ok := worker.configWorkload.AllowedStatusMap[statusStr]; !ok {
-			// log.Panic the request
-		}
-		worker.UpdateResponseVars(statusStr, string(worker.response.Body()))
-	*/
+	worker.worker.InitIO()
+	startTime := time.Now()
+	worker.worker.SendIO()
+	worker.currentIOLatency = time.Now().Sub(startTime).Nanoseconds() / 1000
+	worker.currentIOStatus = worker.worker.GetIOStatus()
+	worker.worker.DebugLogCurrentIO(nil)
+	if _, ok := worker.configWorkload.AllowedStatusMap[worker.currentIOStatus]; !ok {
+		worker.worker.PanicLogCurrentIO(errors.New("got unallowed status"))
+	}
+	worker.UpdateStats(worker.currentIOStatus, worker.currentIOLatency)
+	worker.UpdateResponseVars(worker.currentIOStatus, string(worker.worker.GetIOResponseData()))
+	worker.worker.FreeIO()
+
 }
 
 func (worker *WorkerBase) DebugLogCurrentIO(err error) {
-}
-
-func (worker *WorkerBase) WarnLogCurrentIO(err error) {
 }
 
 func (worker *WorkerBase) PanicLogCurrentIO(err error) {
@@ -244,12 +249,12 @@ func (worker *WorkerBase) UpdateResponseVars(statusStr string, responseData stri
 				responseValue = responseData
 			} else if responseHaveValidJson {
 				if responseValue, err = jsonQuery.Interface(varConfig.FieldPath...); err != nil {
-					err = errors.New(fmt.Sprintf("Workload %s worker %d failed to find response_value var %s in response", worker.configWorkload.Name, worker.GetIndex(), varName))
+					err = errors.New(fmt.Sprintf("failed to find response_value var %s in response", varName))
 					worker.worker.DebugLogCurrentIO(err)
 					continue
 				}
 			} else {
-				err = errors.New(fmt.Sprintf("Workload %s worker %d failed to find response_value var %s in response", worker.configWorkload.Name, worker.GetIndex(), varName))
+				err = errors.New(fmt.Sprintf("failed to find response_value var %s in response", varName))
 				worker.worker.DebugLogCurrentIO(err)
 				continue
 			}
@@ -264,7 +269,7 @@ func (worker *WorkerBase) UpdateResponseVars(statusStr string, responseData stri
 					}
 				}
 				if !expectedValueFound {
-					err = errors.New(fmt.Sprintf("Workload %s worker %d failed to find response_value var %s in response", worker.configWorkload.Name, worker.GetIndex(), varName))
+					err = errors.New(fmt.Sprintf("failed to find response_value var %s in response", varName))
 					worker.worker.PanicLogCurrentIO(err)
 				}
 			}

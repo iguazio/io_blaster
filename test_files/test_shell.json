@@ -1,0 +1,56 @@
+{
+	"workloads" :
+	[
+		{
+			"name" : "workload_test_shell",
+			"allowed_status" :
+			[
+				"0"				
+			],
+			"start_time" : 0,
+			"duration" : 100000,
+			"end_on_var_value" :
+			{
+				"req_id" :
+				{
+					"type" : "CONST",
+					"op" : ">=",
+					"value" : 1
+				}
+			},
+			"workers" : 1,
+			"vars" :
+			{
+				"enum" :
+				{
+					"worker_each" :
+					{
+						"req_id" :
+						{
+							"min_value" : 0
+						}
+					}
+				}
+			},
+			"type" : "SHELL",
+			"shell_config" :
+			{
+				"user" :
+				{
+					"type" : "CONST",
+					"value" : "root"
+				},
+				"host" :
+				{
+					"type" : "CONST",
+					"value" : "localhost"
+				},
+				"cmd" :
+				{
+					"type" : "CONST",
+					"value" : "ls /tmp/"
+				}
+			}
+		}
+	]
+}

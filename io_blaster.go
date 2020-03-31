@@ -114,6 +114,10 @@ func create_workloads() {
 			workload = new(Workload.WorkloadHttp)
 			workload.Init(&config, int64(workloadIndex))
 			break
+		case "SHELL":
+			workload = new(Workload.WorkloadShell)
+			workload.Init(&config, int64(workloadIndex))
+			break
 		default:
 			log.Panicln(fmt.Sprintf("Found workload with unsupported type. %+v", workload_config))
 		}
