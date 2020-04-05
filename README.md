@@ -141,7 +141,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
     }
     "enum" : 
     {
-        "workload_sim_each" : // simulate 1 enum per workload var (only simulate so no thread sync is needed). worker increases the var value by workers number instead of by 1 for each request
+        "workload_sim_each" : // simulate 1 enum per workload var (only simulate so no thread sync is needed). each worker starts from min_value+worker_index (instead of just min_value) and worker increases the var value by workers number instead of by 1 for each request
         {
             "var_7_name" :
             {
@@ -201,4 +201,13 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 }
 ```
 
-For more accurate understanding of the config file format check the [struct ConfigIoBlaster](https://github.com/iguazio/io_blaster/blob/master/Config/Config.go#L127) and some of the [test files](https://github.com/iguazio/io_blaster/tree/master/test_files).
+For more accurate understanding of the config file format check some of the [test files](https://github.com/iguazio/io_blaster/tree/master/test_files).
+
+## planned features
+* add support for array vars - support for const number/string array vars
+* add support for dist var - while random.worker_once/random.each can be used to distribute values between workers it might create a bit unbalanced distribution. dist var will be able to iterate in a cyclic way over an array of values to distribute them between the workers
+* improve enum vars to support inc/dec by some const value instead of just inc by 1
+* add support for global const vars - will allow to define const/file/random.global_once vars in 1 global vars area so wont need to redefine for each workload.
+* add support for arrayed_format - with the support for array vars it would be usefull to be able to create a format based on array without having to reference each element of the array. for example if you have an array with 100 elements and you want your http body to contain a json with a record for each array element you will be able to to do it in 1 line arrayed_format instead of regular format referencing the 100 elements.
+* add support for arrayed response_value vars - same idea as in arrayed_format. this will help if you have a response containing an array and you want to load,verify the whole array
+* add support for capnp response parsing in a similar way to the current json response parsing
