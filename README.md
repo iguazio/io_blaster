@@ -16,6 +16,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 ./io_blaster -c <config_file_path> -o <output_file_path>
 * Notice that the <output_file_path> actual path will be <output_file_path>.log
 * You can add -v option to run in verbose mode (this will generate a log for every request sent and also print worker stats in the end in addition to the workload stats)
+* Notice that in order to run shell workloads with more than 10 workers you will need to edit MaxStartups param in sshd_config to support for more than 10 connections. To allow 100 connections run `sudo vi /etc/ssh/sshd_config` and add at the end `MaxStartups 100:30:200`
 
 ### config format
 
@@ -195,7 +196,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 ```
 {
     "user" : <config_field>, // set the user string using config_field (user used to ssh)
-    "password" : <config_field>, // set the password string using config_field (password used to ssh - if not set will only work if curmachinerent machine io_blaster is running from is in authorized hosts of target host)
+    "password" : <config_field>, // set the password string using config_field (password used to ssh - if not set will only work if current machine io_blaster is running from is in authorized hosts of target host)
     "host" : <config_field>, // set the host string using config_field (host to ssh to)
     "cmd" : <config_field> // set the cmd string using config_field (shell command to run)
 }
