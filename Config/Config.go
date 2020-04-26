@@ -3,13 +3,13 @@ package Config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/iguazio/io_blaster/Utils"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"sync"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -138,33 +138,18 @@ type ConfigIoBlaster struct {
 	CurrentRunTime int64
 }
 
-func GetSeededRandom() *rand.Rand {
-	return rand.New(rand.NewSource(time.Now().UnixNano()))
-}
-
-func GenerateRandomString(length int) string {
-	var seededRand *rand.Rand = GetSeededRandom()
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	strBytes := make([]byte, length)
-	for i := range strBytes {
-		strBytes[i] = charset[seededRand.Intn(len(charset))]
-	}
-
-	return string(strBytes)
-}
-
 func VarRunRandom(varConfig *ConfigVarsRandomOrEnum) interface{} {
 	switch varConfig.Type {
 	case "STRING":
 		if varConfig.Length == 0 {
 			log.Panicln(fmt.Sprintf("Found random string var with legnth=0. var=%+v", varConfig))
 		}
-		return GenerateRandomString(varConfig.Length)
+		return Utils.GenerateRandomString(varConfig.Length)
 	case "INT":
 		if varConfig.MaxValue <= varConfig.MinValue {
 			log.Panicln(fmt.Sprintf("Found random int var with max_value <= min_value. var=%+v", varConfig))
 		}
-		var seededRand *rand.Rand = GetSeededRandom()
+		var seededRand *rand.Rand = Utils.GetSeededRandom()
 		return seededRand.Int63n(varConfig.MaxValue-varConfig.MinValue+1) + varConfig.MinValue
 	default:
 		log.Panicln(fmt.Sprintf("Found random var with unsupported type. var=%+v", varConfig))

@@ -2,6 +2,8 @@ package Utils
 
 import (
 	"errors"
+	"math/rand"
+	"time"
 )
 
 func CompareInterface(op string, a interface{}, b interface{}) (bool, error) {
@@ -36,4 +38,19 @@ func CompareInterface(op string, a interface{}, b interface{}) (bool, error) {
 	default:
 		return false, errors.New("Type assertion error")
 	}
+}
+
+func GetSeededRandom() *rand.Rand {
+	return rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+func GenerateRandomString(length int) string {
+	var seededRand *rand.Rand = GetSeededRandom()
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	strBytes := make([]byte, length)
+	for i := range strBytes {
+		strBytes[i] = charset[seededRand.Intn(len(charset))]
+	}
+
+	return string(strBytes)
 }
