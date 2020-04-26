@@ -1,0 +1,244 @@
+{
+	"workloads" : 
+	[		
+		{
+			"name" : "workload_put_obj",	
+			"allowed_status" : 
+			[
+				"200",
+				"204"
+			],		
+			"start_time" : 0,
+			"duration" : 50000000,
+			"end_on_var_value" :
+			{
+				"file_id" : 
+				{
+					"type" : "CONST",
+					"op" : ">=",
+					"value" : 50
+				}
+			},
+			"workers" : 50,
+			"vars" :
+			{
+				"enum" :
+				{
+					"workload_sim_each" :
+					{
+						"file_id" :
+						{							
+							"min_value" : 0
+						}
+					}
+				},
+				"random" :
+				{
+					"worker_once" :
+					{
+						"app_node" :
+						{
+							"type" : "INT",
+							"min_value" : 8,
+							"max_value" : 10
+						}						
+					}
+				}
+			},
+			"type" : "HTTP",
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "PUT"
+				},						
+				"url" : 
+				{					
+					"type" : "FORMAT",
+					"format" : "http://192.168.204.%d:8085/bigdata/perf_fuse_symlink/file_%d",
+					"args" : ["app_node", "file_id"]				
+				},
+				"headers" :
+				{
+					"Authorization" :
+					{
+						"type" : "CONST",
+						"value" : "Basic aWd1YXppbzpkYXRhbEBrZSE="
+					}
+				},
+				"body" :
+				{
+					"type" : "CONST",
+					"value" : ""
+				}
+			}						
+		},
+		{
+			"name" : "workload_symlink_stress_start",	
+			"allowed_status" : 
+			[
+				"0"				
+			],		
+			"start_time" : 0,
+			"duration" : 10000,
+			"end_on_var_value" :
+			{
+				"file_sym_id" : 
+				{
+					"type" : "CONST",
+					"op" : ">=",
+					"value" : 100
+				}
+			},
+			"depends_on_workload": 
+			[
+				"workload_put_obj"
+			],
+			"workers" : 50,			
+			"vars" :
+			{
+				"enum" :
+				{
+					"worker_each" :
+					{
+						"file_sym_id" :
+						{							
+							"min_value" : 0
+						}
+					}
+				}
+			},			
+			"type" : "SHELL",
+			"shell_config" : 
+			{
+				"user" : 
+				{
+					"type" : "CONST",
+					"value" : "iguazio"
+				},
+				"password" : 
+				{
+					"type" : "CONST",
+					"value" : "24tango"
+				},
+				"host" : 
+				{					
+					"type" : "CONST",
+					"value" : "192.168.204.11"					
+				},
+				"cmd" : 
+				{
+					"type" : "FORMAT",
+					"format" : "ln -s /tmp/fuse_root/perf_fuse_symlink/file_%d /tmp/fuse_root/perf_fuse_symlink/file_%d_sym_%d",
+					"args": ["io_blaster_worker_id", "io_blaster_worker_id", "file_sym_id"]
+				}			
+			}						
+		},
+		{
+			"name" : "workload_symlink_stress",	
+			"allowed_status" : 
+			[
+				"0"				
+			],		
+			"start_time" : 0,
+			"duration" : 60,
+			"depends_on_workload": 
+			[
+				"workload_symlink_stress_start"
+			],
+			"workers" : 50,			
+			"vars" :
+			{
+				"enum" :
+				{
+					"worker_each" :
+					{
+						"file_sym_id" :
+						{							
+							"min_value" : 100
+						}
+					}
+				}
+			},			
+			"type" : "SHELL",
+			"shell_config" : 
+			{
+				"user" : 
+				{
+					"type" : "CONST",
+					"value" : "iguazio"
+				},
+				"password" : 
+				{
+					"type" : "CONST",
+					"value" : "24tango"
+				},
+				"host" : 
+				{					
+					"type" : "CONST",
+					"value" : "192.168.204.11"					
+				},
+				"cmd" : 
+				{
+					"type" : "FORMAT",
+					"format" : "ln -s /tmp/fuse_root/perf_fuse_symlink/file_%d /tmp/fuse_root/perf_fuse_symlink/file_%d_sym_%d",
+					"args": ["io_blaster_worker_id", "io_blaster_worker_id", "file_sym_id"]
+				}			
+			}						
+		},
+		{
+			"name" : "workload_symlink_rm_stress",	
+			"allowed_status" : 
+			[
+				"0",
+				"2"
+			],		
+			"start_time" : 0,
+			"duration" : 60,
+			"depends_on_workload": 
+			[
+				"workload_symlink_stress_start"
+			],
+			"workers" : 50,			
+			"vars" :
+			{
+				"enum" :
+				{
+					"worker_each" :
+					{
+						"file_sym_id" :
+						{							
+							"min_value" : 0
+						}
+					}
+				}				
+			},			
+			"type" : "SHELL",
+			"shell_config" : 
+			{
+				"user" : 
+				{
+					"type" : "CONST",
+					"value" : "iguazio"
+				},
+				"password" : 
+				{
+					"type" : "CONST",
+					"value" : "24tango"
+				},
+				"host" : 
+				{					
+					"type" : "CONST",
+					"value" : "192.168.204.11"					
+				},
+				"cmd" : 
+				{
+					"type" : "FORMAT",
+					"format" : "rm /tmp/fuse_root/perf_fuse_symlink/file_%d_sym_%d",
+					"args": ["io_blaster_worker_id", "file_sym_id"]
+				}			
+			}						
+		}
+	]	
+}
