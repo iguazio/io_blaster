@@ -1,8 +1,11 @@
 package Utils
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -53,4 +56,57 @@ func GenerateRandomString(length int) string {
 	}
 
 	return string(strBytes)
+}
+
+func GenerateRandomBlob(length int) []byte {
+	var seededRand *rand.Rand = GetSeededRandom()
+	blob := make([]byte, length)
+	for i := range blob {
+		blob[i] = byte(seededRand.Intn(255))
+	}
+
+	return blob
+}
+
+func GenerateRandomBase64(src_blob_length int) string {
+	blob := GenerateRandomBlob(src_blob_length)
+	return base64.StdEncoding.EncodeToString(blob)
+}
+
+func ArrayFormat(format string, args []interface{}, arrayIndexesInArgs []int, arrayJoinString string) string {
+	numberOfArrays := len(arrayIndexesInArgs)
+	totalIterationsNeeded := 1
+	currentArrayIndexes := make([]int, numberOfArrays)
+	arrayLens := make([]int, numberOfArrays)
+	for arrayIndex, arrayIndexInArgs := range arrayIndexesInArgs {
+		arrayLens[arrayIndex] = len(args[arrayIndexInArgs].([]interface{}))
+		totalIterationsNeeded *= arrayLens[arrayIndex]
+	}
+
+	argsForFormat := make([]interface{}, len(args))
+	arrayIndexesInArgsIndex := 0
+	for argIndex, arg := range args {
+		if argIndex == arrayIndexesInArgsIndex {
+			argsForFormat[argIndex] = arg.([]interface{})[0]
+		} else {
+			argsForFormat[argIndex] = arg
+		}
+	}
+
+	arrayFormatParts := make([]string, totalIterationsNeeded)
+	for iterNum, currentArrayIndexLooping := 0, numberOfArrays-1; iterNum < totalIterationsNeeded; iterNum++ {
+		for currentArrayIndexes[currentArrayIndexLooping] == arrayLens[currentArrayIndexLooping] {
+			for arrayIndexToReset := currentArrayIndexLooping; arrayIndexToReset < numberOfArrays; arrayIndexToReset++ {
+				currentArrayIndexes[arrayIndexToReset] = 0
+				argsForFormat[arrayIndexesInArgs[arrayIndexToReset]] = args[arrayIndexesInArgs[arrayIndexToReset]].([]interface{})[0]
+			}
+			currentArrayIndexes[currentArrayIndexLooping-1]++
+			currentArrayIndexLooping = numberOfArrays - 1
+		}
+		argsForFormat[arrayIndexesInArgs[currentArrayIndexLooping]] = args[arrayIndexesInArgs[currentArrayIndexLooping]].([]interface{})[currentArrayIndexes[currentArrayIndexLooping]]
+		arrayFormatParts[iterNum] = fmt.Sprintf(format, argsForFormat...)
+		currentArrayIndexes[currentArrayIndexLooping]++
+	}
+
+	return strings.Join(arrayFormatParts, arrayJoinString)
 }

@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jmoiron/jsonq"
 	"github.com/iguazio/io_blaster/Config"
 	"github.com/iguazio/io_blaster/Utils"
+	"github.com/jmoiron/jsonq"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -96,8 +96,10 @@ func (worker *WorkerBase) Run() {
 		}
 		worker.RunIO()
 		worker.currentRunTime = atomic.LoadInt64(&worker.config.CurrentRunTime)
-		worker.CalculateNextVars()
 		shouldRun = worker.currentRunTime < endTime
+		if shouldRun {
+			worker.CalculateNextVars()
+		}
 	}
 	worker.realEndTimeNsec = time.Now().UnixNano()
 	worker.configWorkload.WorkersRunWaitGroup.Done()
@@ -179,6 +181,16 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 			worker.calculatedVars[varName] = varConfig.MinValue
 		}
 	}
+
+	// keep this var parsing last since it might depend on other vars
+	if worker.configWorkload.Vars.ConfigField != nil {
+		for varName, varConfig := range worker.configWorkload.Vars.ConfigField {
+			if _, ok := worker.calculatedVars[varName]; ok {
+				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
+			}
+			worker.calculatedVars[varName] = worker.ParseField(varConfig)
+		}
+	}
 }
 
 func (worker *WorkerBase) CalculateNextVars() {
@@ -207,6 +219,13 @@ func (worker *WorkerBase) CalculateNextVars() {
 	}
 
 	worker.calculatedVars["io_blaster_uid"] = worker.GetRequestUid()
+
+	// keep this var parsing last since it might depend on other vars
+	if worker.configWorkload.Vars.ConfigField != nil {
+		for varName, varConfig := range worker.configWorkload.Vars.ConfigField {
+			worker.calculatedVars[varName] = worker.ParseField(varConfig)
+		}
+	}
 }
 
 func (worker *WorkerBase) UpdateStats(statusStr string, latency int64) {
@@ -288,6 +307,18 @@ func (worker *WorkerBase) ParseField(fieldConfig *Config.ConfigField) interface{
 			args = append(args, worker.calculatedVars[argName])
 		}
 		return fmt.Sprintf(fieldConfig.Format, args...)
+	case "ARRAY_FORMAT":
+		arrayIndexesInArgs := make([]int, 0)
+		args := make([]interface{}, 0)
+		for argIndex, argName := range fieldConfig.FormatArgs {
+			args = append(args, worker.calculatedVars[argName])
+			for _, arrayName := range fieldConfig.ArrayArgs {
+				if arrayName == argName {
+					arrayIndexesInArgs = append(arrayIndexesInArgs, argIndex)
+				}
+			}
+		}
+		return Utils.ArrayFormat(fieldConfig.Format, args, arrayIndexesInArgs, fieldConfig.ArrayJoinString)
 	case "CONST":
 		return fieldConfig.Value
 	case "VAR":
