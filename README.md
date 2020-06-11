@@ -16,7 +16,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 ./io_blaster -c <config_file_path> -o <output_file_path>
 * Notice that the <output_file_path> actual path will be <output_file_path>.log
 * You can add -v option to run in verbose mode (this will generate a log for every request sent and also print worker stats in the end in addition to the workload stats)
-* Notice that in order to run shell workloads with more than 10 workers you will need to edit MaxStartups param in sshd_config to support for more than 10 connections. To allow 100 connections run `sudo vi /etc/ssh/sshd_config` and add at the end `MaxStartups 100:30:200`
+* Notice that in order to run shell workloads with more than 10 workers you will need to edit MaxStartups param in sshd_config to support for more than 10 connections. To allow 100 connections run `sudo vi /etc/ssh/sshd_config` and add at the end `MaxStartups 100:30:200`, then restart the sshd for the changes to take effect by running `sudo service sshd restart`
 
 ### config format
 
@@ -80,12 +80,24 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 ```
 {  
     "type" : "FORMAT",  
-    "format" : "dir_%s/file_%d", // the format to be used (golang format - can also use %v)
+    "format" : "dir_%s/file_%d", // the format to be used (golang format - can also use %v)    
     "args" : ["var_1_name", "var_2_name"], // var names used as args for the format
     "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
-}  
+}
 ```
-
+  
+###### config_field using array_format based on current var/arrays values (notice an example of how the array_format works can be found [here](https://play.golang.org/p/R1ckHvYuiD-))
+```
+{ 	
+    "type" : "ARRAY_FORMAT",  
+    "format" : "dir_%s/file_%d", // the format to be used (golang format - can also use %v)
+    "array_args" : ["var_1_name"], // vars names must be names of vars containing arrays. 
+    "array_join_string" : ",", // will be used to join array_format parts
+    "args" : ["var_1_name", "var_2_name"], // var names used as args for the format
+    "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
+}
+```
+  
 #### vars_config should be a json with the following format:  
 ```
 { 
@@ -93,6 +105,13 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
        notice blaster also have builtin vars that can be used
        io_blaster_uid - unique id for each request
        io_blaster_worker_id - worker id starting from 0
+    */
+    /*
+       notice that variable parsing order is as follow:
+       1. const, file, random.once, random.worker_once, response_value (init value)
+       2. random.each, enum.workload_sim_each, enum.worker_each, enum.on_time
+       3. config_field 
+       4. response_value (after the resposne on the request)
     */
     "const" : // used to define const values 
     {
@@ -104,14 +123,14 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
         { 
             "value" : <value> // can be string or number (not tested with complex structs)
         },
-    }
+    },
     "file" :
     {
         "var_3_name" : 
         { 
             "path" : "/tmp/payload.txt" // path to file containing the data (data is parsed as string data)
         }
-    }
+    },
     "random" : // can generate random int/string values (charset for random strings is a-z, A-Z, 0-9)
     {
         "once" : // workload will run random once and all workers will use same value
@@ -135,11 +154,11 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
         {
             "var_6_name" :
             {
-                "type" : "STRING",
-                "length" : 100 // will generate random string with length=100
+                "type" : "BASE64",
+                "length" : 100 // will generate random base64 string with original blob length=100
             }
         }
-    }
+    },
     "enum" : 
     {
         "workload_sim_each" : // simulate 1 enum per workload var (only simulate so no thread sync is needed). each worker starts from min_value+worker_index (instead of just min_value) and worker increases the var value by workers number instead of by 1 for each request
@@ -164,7 +183,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
                 "interval": 1 // interval in seconds in which the enum will run the ++ (in the example each 1 sec the var will increase its value by 1)
             }
         }
-    }
+    },
     "response_value" : // vars with value taken from the response
     {
         "var_10_name" :
@@ -174,6 +193,10 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             "init_value" : <value>, // can be string or number (not tested with complex structs)  
             "expected_values" : [<config_field_1>, <config_field_2>] // list of expected values - panic on none expected value
         }
+    },
+    "config_field"  : // var with value calculated like a config_field
+    {
+    	"var_11_name" : <config_field> // set the var value using config_field   	
     }
 }
 ```
@@ -205,10 +228,10 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 For more accurate understanding of the config file format check some of the [test files](https://github.com/iguazio/io_blaster/tree/master/test_files).
 
 ## planned features
-* add support for array vars - support for const number/string array vars
 * add support for dist var - while random.worker_once/random.each can be used to distribute values between workers it might create a bit unbalanced distribution. dist var will be able to iterate in a cyclic way over an array of values to distribute them between the workers
 * improve enum vars to support inc/dec by some const value instead of just inc by 1
 * add support for global const vars - will allow to define const/file/random.global_once vars in 1 global vars area so wont need to redefine for each workload.
-* add support for arrayed_format - with the support for array vars it would be usefull to be able to create a format based on array without having to reference each element of the array. for example if you have an array with 100 elements and you want your http body to contain a json with a record for each array element you will be able to to do it in 1 line arrayed_format instead of regular format referencing the 100 elements.
 * add support for arrayed response_value vars - same idea as in arrayed_format. this will help if you have a response containing an array and you want to load,verify the whole array
+* add option to limit request/response payload output length when logging them on error or when running in debug mode (to not spam the logs)
+* add default log path when none is given (<config_path>.log)
 * add support for capnp response parsing in a similar way to the current json response parsing

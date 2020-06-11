@@ -3,13 +3,13 @@ package Config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/iguazio/io_blaster/Utils"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"sync"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -88,16 +88,19 @@ type ConfigVars struct {
 	File          map[string]*ConfigVarsFile         `json:"file"`
 	Random        *ConfigVarsRandom                  `json:"random"`
 	Enum          *ConfigVarsEnum                    `json:"enum"`
+	ConfigField   map[string]*ConfigField            `json:"config_field"`
 	ResponseValue map[string]*ConfigVarResponseValue `json:"response_value"`
 }
 
 type ConfigField struct {
-	Type       string      `json:"type"`
-	Op         string      `json:"op"`
-	Format     string      `json:"format"`
-	FormatArgs []string    `json:"args"`
-	Value      interface{} `json:"value"`
-	VarName    string      `json:"var_name"`
+	Type            string      `json:"type"`
+	Op              string      `json:"op"`
+	Format          string      `json:"format"`
+	ArrayArgs       []string    `json:"array_args"`
+	ArrayJoinString string      `json:"array_join_string"`
+	FormatArgs      []string    `json:"args"`
+	Value           interface{} `json:"value"`
+	VarName         string      `json:"var_name"`
 }
 
 type ConfigHttp struct {
@@ -138,33 +141,23 @@ type ConfigIoBlaster struct {
 	CurrentRunTime int64
 }
 
-func GetSeededRandom() *rand.Rand {
-	return rand.New(rand.NewSource(time.Now().UnixNano()))
-}
-
-func GenerateRandomString(length int) string {
-	var seededRand *rand.Rand = GetSeededRandom()
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	strBytes := make([]byte, length)
-	for i := range strBytes {
-		strBytes[i] = charset[seededRand.Intn(len(charset))]
-	}
-
-	return string(strBytes)
-}
-
 func VarRunRandom(varConfig *ConfigVarsRandomOrEnum) interface{} {
 	switch varConfig.Type {
 	case "STRING":
 		if varConfig.Length == 0 {
 			log.Panicln(fmt.Sprintf("Found random string var with legnth=0. var=%+v", varConfig))
 		}
-		return GenerateRandomString(varConfig.Length)
+		return Utils.GenerateRandomString(varConfig.Length)
+	case "BASE64":
+		if varConfig.Length == 0 {
+			log.Panicln(fmt.Sprintf("Found random base64 var with legnth=0. var=%+v", varConfig))
+		}
+		return Utils.GenerateRandomBase64(varConfig.Length)
 	case "INT":
 		if varConfig.MaxValue <= varConfig.MinValue {
 			log.Panicln(fmt.Sprintf("Found random int var with max_value <= min_value. var=%+v", varConfig))
 		}
-		var seededRand *rand.Rand = GetSeededRandom()
+		var seededRand *rand.Rand = Utils.GetSeededRandom()
 		return seededRand.Int63n(varConfig.MaxValue-varConfig.MinValue+1) + varConfig.MinValue
 	default:
 		log.Panicln(fmt.Sprintf("Found random var with unsupported type. var=%+v", varConfig))
@@ -194,6 +187,6 @@ func (config *ConfigIoBlaster) LoadConfig(config_file_path string) {
 	byteValue, _ := ioutil.ReadAll(json_file)
 	err = json.Unmarshal(byteValue, config)
 	if err != nil {
-		log.Panicln("Failed to parse config file json")
+		log.Panicln("Failed to parse config file json", err)
 	}
 }

@@ -1,0 +1,95 @@
+{
+    "workloads" :
+    [
+        {
+            "name" : "workload_put_items",
+            "allowed_status" :
+            [
+                "200",
+                "204"
+            ],
+            "start_time" : 0,
+            "duration" : 500000000,
+            "end_on_var_value" :
+            {
+                "file_id" :
+                {
+                    "type" : "CONST",
+                    "op" : ">=",
+                    "value" : 1000
+                }
+            },
+            "workers" : 512,
+            "vars" :
+            {
+            	"const" :
+            	{            		
+            		"attrs_ids" : 
+            		{
+            			"value" : [0, 1, 2, 3]
+            		}
+            	},
+                "enum" :
+                {
+                    "workload_sim_each" :
+                    {
+                        "file_id" :
+                        {
+                            "min_value" : 0
+                        }
+                    }
+                },
+                "random" :
+                {
+                    "each" :
+                    {
+                    	"payload" :
+                    	{
+                        	"type" : "BASE64",
+                        	"length": 3
+                        }
+                    }
+                },
+                "config_field" :
+                {
+                	"item_data" :
+                	{
+                		"type" : "ARRAY_FORMAT",
+                		"format" : "'str_%v' : {'B': '%s'}",
+                		"args" : ["attrs_ids", "payload"],
+                		"array_args" : ["attrs_ids"],
+                    	"array_join_string" : ","
+                    }
+                }
+            },
+            "type" : "HTTP",
+            "http_config" :
+            {
+                "method" :
+                {
+                    "type" : "CONST",
+                    "value" : "PUT"
+                },
+                "url" :
+                {
+                    "type" : "CONST",
+                    "value" : "http://127.0.0.1:8081/1/test_put_items_blob_attrs/"
+                },
+                "headers" :
+                {
+                    "X-v3io-function" :
+                    {
+                        "type" : "CONST",
+                        "value" : "PutItem"
+                    }
+                },
+                "body" :
+                {
+                    "type" : "FORMAT",
+                    "format" : "{'Key':{'name' :{'S': 'file_%d'}}, 'Item':{%s}}",
+                    "args" : ["file_id", "item_data"]                    
+                }
+            }
+        }
+    ]
+}

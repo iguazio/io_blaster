@@ -3,6 +3,7 @@ package Worker
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"time"
 
@@ -28,7 +29,11 @@ func (worker *WorkerShell) Init(config *Config.ConfigIoBlaster, configWorkload *
 	worker.sshPool = sshLib.NewPool(&sshLib.PoolConfig{MaxConns: 100, GCInterval: time.Second * 60})
 
 	if agentSocket, ok := os.LookupEnv("SSH_AUTH_SOCK"); !ok {
-		log.Panicln(fmt.Sprintf("workload=%s worker=%d could not connect to SSH_AUTH_SOCK. Is ssh-agent running?", worker.configWorkload.Name, worker.workerIndex))
+		cmd := exec.Command("eval", "\"$(ssh-agent -s)\"")
+		_, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Panicln(fmt.Sprintf("workload=%s worker=%d could not connect/start SSH_AUTH_SOCK. Is ssh-agent running?", worker.configWorkload.Name, worker.workerIndex))
+		}
 	} else {
 		worker.sshConfig = &sshLib.SSHConfig{
 			Port:            22,

@@ -27,7 +27,7 @@ var (
 	workloads        map[string]Workload.IWorkload
 )
 
-const AppVersion = "1.0.0"
+const AppVersion = "1.1.0"
 
 func parse_cmd_line_args() {
 	flag.BoolVar(&showVersion, "version", false, "show version")
