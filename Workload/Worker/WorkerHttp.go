@@ -22,6 +22,10 @@ func (worker *WorkerHttp) Init(config *Config.ConfigIoBlaster, configWorkload *C
 	worker.worker = worker
 	worker.WorkerBase.Init(config, configWorkload, workloadIndex, workerIndex, calculatedWorkloadConstVars)
 
+	if configWorkload.HttpConfig.RequestTimeout == 0 {
+		configWorkload.HttpConfig.RequestTimeout = 120
+	}
+
 	worker.httpClient = &fasthttp.Client{
 		Dial: func(addr string) (net.Conn, error) {
 			return fasthttp.DialTimeout(addr, time.Second*120)
@@ -45,7 +49,7 @@ func (worker *WorkerHttp) InitIO() {
 }
 
 func (worker *WorkerHttp) SendIO() {
-	if err := worker.httpClient.DoTimeout(worker.request, worker.response, 120*time.Second); err != nil {
+	if err := worker.httpClient.DoTimeout(worker.request, worker.response, worker.configWorkload.HttpConfig.RequestTimeout*time.Second); err != nil {
 		worker.PanicLogCurrentIO(err)
 	}
 }
