@@ -104,6 +104,7 @@ type ConfigField struct {
 }
 
 type ConfigHttp struct {
+	RequestTimeout time.Duration    `json:"request_timeout"`
 	Method  *ConfigField            `json:"method"`
 	Url     *ConfigField            `json:"url"`
 	Headers map[string]*ConfigField `json:"headers"`
