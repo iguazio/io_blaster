@@ -1,0 +1,51 @@
+{
+	"workloads" : 
+	[
+		{
+			"name" : "workload_1",
+			"allowed_status" : 
+			[
+				"200"
+			],			
+			"start_time" : 0,
+			"duration" : 10,
+			"workers" : 64,			
+			"type" : "HTTP",
+			"vars" : 			
+			{
+				"const" :
+				{
+					"nodes_array" : 
+					{
+						"value" : ["http://www.google.com", "http://www.bing.com"]
+					}
+				},
+				"dist" :
+				{
+					"nodes_dist": 
+					{
+						"array_var" : "nodes_array"
+					}
+				}
+			},
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "CONST",
+					"value" : "GET"
+				},				
+				"url" : 
+				{
+					"type" : "VAR",
+					"var_name" : "nodes_dist"					
+				},
+				"body" :
+				{
+					"type" : "CONST",
+					"value" : ""
+				}
+			}						
+		}
+	]	
+}

@@ -99,11 +99,16 @@ type ConfigVarsEnum struct {
 	OnTime          ConfigVarsRandomOrEnumMap `json:"on_time"`
 }
 
+type ConfigVarsDist struct {
+	ArrayVarName string `json:"array_var"`
+}
+
 type ConfigVars struct {
 	Const         map[string]*ConfigVarsConst        `json:"const"`
 	File          map[string]*ConfigVarsFile         `json:"file"`
 	Random        *ConfigVarsRandom                  `json:"random"`
 	Enum          *ConfigVarsEnum                    `json:"enum"`
+	Dist          map[string]*ConfigVarsDist         `json:"dist"`
 	ConfigField   map[string]*ConfigField            `json:"config_field"`
 	ResponseValue map[string]*ConfigVarResponseValue `json:"response_value"`
 }

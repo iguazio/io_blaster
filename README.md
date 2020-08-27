@@ -111,8 +111,9 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
        notice that variable parsing order is as follow:
        1. const, file, random.once, random.worker_once, response_value (init value)
        2. random.each, enum.workload_sim_each, enum.worker_each, enum.on_time
-       3. config_field 
-       4. response_value (after the resposne on the request)
+       3. dist
+       4. config_field 
+       5. response_value (after the resposne on the request)
     */
     "const" : // used to define const values 
     {
@@ -198,6 +199,13 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
     "config_field"  : // var with value calculated like a config_field
     {
     	"var_11_name" : <config_field> // set the var value using config_field   	
+    },
+    "dist" : // distribute values from an array var to the workers in a cyclic way. the value will be based on worker_index % array_len 
+    {
+    	"var_12_name" :
+    	{
+    		"array_var" : <array_var_name> // must be name of var containg an array
+    	}
     }
 }
 ```
@@ -230,7 +238,6 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 For more accurate understanding of the config file format check some of the [test files](https://github.com/iguazio/io_blaster/tree/master/test_files).
 
 ## planned features
-* add support for dist var - while random.worker_once/random.each can be used to distribute values between workers it might create a bit unbalanced distribution. dist var will be able to iterate in a cyclic way over an array of values to distribute them between the workers
 * improve enum vars to support inc/dec by some const value instead of just inc by 1
 * add support for global const vars - will allow to define const/file/random.global_once vars in 1 global vars area so wont need to redefine for each workload.
 * add support for arrayed response_value vars - same idea as in arrayed_format. this will help if you have a response containing an array and you want to load,verify the whole array

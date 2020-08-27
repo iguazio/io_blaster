@@ -82,6 +82,7 @@ func (workload *WorkloadBase) CalculateWorkloadConstVars() {
 	if workload.configWorkload.Vars == nil {
 		return
 	}
+
 	for varName, varConfig := range workload.configWorkload.Vars.Const {
 		if _, ok := workload.calculatedWorkloadConstVars[varName]; ok {
 			log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", workload.Name, varName))

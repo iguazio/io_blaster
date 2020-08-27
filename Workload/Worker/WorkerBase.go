@@ -182,6 +182,22 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 		}
 	}
 
+	// keep this var parsing last (othar than config field) since it depends on other array var
+	for varName, varConfig := range worker.configWorkload.Vars.Dist {
+		if _, ok := worker.calculatedVars[varName]; ok {
+			log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
+		}
+
+		if _, ok := worker.calculatedVars[varConfig.ArrayVarName]; !ok {
+			log.Panicln(fmt.Sprintf("Workload %s contain Dist var %s that is mapped to non existing array var name %s", worker.configWorkload.Name, varName, varConfig.ArrayVarName))
+		}
+
+		arrayVar := worker.calculatedVars[varConfig.ArrayVarName].([]interface{})
+		arrayVarLen := int64(len(arrayVar))
+		arrayIndex := int64(worker.workerIndex) % arrayVarLen
+		worker.calculatedVars[varName] = arrayVar[arrayIndex]
+	}
+
 	// keep this var parsing last since it might depend on other vars
 	if worker.configWorkload.Vars.ConfigField != nil {
 		for varName, varConfig := range worker.configWorkload.Vars.ConfigField {
