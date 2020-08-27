@@ -24,13 +24,29 @@ var (
 )
 
 type Stats struct {
-	ExactRunDuration   float64
-	TotalRequests      uint64
-	Iops               float64
-	StatusCounters     map[string]uint64
-	StatusCountersPct  map[string]float64
-	LatencyCounters    map[int64]uint64
-	LatencyCountersPct map[int64]float64
+	ExactRunDuration   float64            `json:"exact_run_duration"`
+	TotalRequests      uint64             `json:"total_requests"`
+	Iops               float64            `json:"iops"`
+	StatusCounters     map[string]uint64  `json:"status_counters"`
+	StatusCountersPct  map[string]float64 `json:"status_counters_pct"`
+	LatencyCounters    map[int64]uint64   `json:"latency_counters"`
+	LatencyCountersPct map[int64]float64  `json:"latency_counters_pct"`
+}
+
+type StatsDumpWorkload struct {
+	WorkerStats map[int64]*Stats `json:"workers"`
+	Stats       *Stats           `json:"stats"`
+}
+
+type StatsDumpIoBlaster struct {
+	WorkloadsStats map[string]*StatsDumpWorkload `json:"workloads"`
+}
+
+func (statsDump *StatsDumpIoBlaster) WriteStatsDumpToFile(statsFile string) {
+	if statsFile != "" {
+		statsData, _ := json.MarshalIndent(statsDump, "", " ")
+		_ = ioutil.WriteFile(statsFile, statsData, 0644)
+	}
 }
 
 func GetLatencyGroup(latency int64) int64 {
@@ -104,11 +120,11 @@ type ConfigField struct {
 }
 
 type ConfigHttp struct {
-	RequestTimeout time.Duration    `json:"request_timeout"`
-	Method  *ConfigField            `json:"method"`
-	Url     *ConfigField            `json:"url"`
-	Headers map[string]*ConfigField `json:"headers"`
-	Body    *ConfigField            `json:"body"`
+	RequestTimeout time.Duration           `json:"request_timeout"`
+	Method         *ConfigField            `json:"method"`
+	Url            *ConfigField            `json:"url"`
+	Headers        map[string]*ConfigField `json:"headers"`
+	Body           *ConfigField            `json:"body"`
 }
 
 type ConfigShell struct {

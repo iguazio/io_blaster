@@ -22,6 +22,7 @@ var (
 	results_file string
 	log_file     *os.File
 	verbose      bool = false
+	stats_file   string
 
 	workload_manager Workload.WorkloadManager
 	workloads        map[string]Workload.IWorkload
@@ -34,6 +35,7 @@ func parse_cmd_line_args() {
 	flag.StringVar(&config_file, "c", "", "config file path")
 	flag.StringVar(&results_file, "o", "", "results file path")
 	flag.BoolVar(&verbose, "v", false, "print debug logs")
+	flag.StringVar(&stats_file, "s", "", "stats file path")
 	flag.Parse()
 
 	if showVersion {
@@ -128,12 +130,19 @@ func create_workloads() {
 }
 
 func process_results() {
+	statsData := new(Config.StatsDumpIoBlaster)
+	statsData.WorkloadsStats = make(map[string]*Config.StatsDumpWorkload)
+
 	for _, workload := range workloads {
 		var workloadStats Config.Stats
+		workloadStatsDump := new(Config.StatsDumpWorkload)
+		workloadStatsDump.WorkerStats = make(map[int64]*Config.Stats)
+		statsData.WorkloadsStats[workload.Name()] = workloadStatsDump
 		workloadStats.StatusCounters = make(map[string]uint64, 0)
 		workloadStats.StatusCountersPct = make(map[string]float64, 0)
 		workloadStats.LatencyCounters = make(map[int64]uint64, 0)
 		workloadStats.LatencyCountersPct = make(map[int64]float64, 0)
+
 		for _, worker := range workload.GetWorkers() {
 			workerStats := worker.GetStats()
 
@@ -156,6 +165,8 @@ func process_results() {
 				workloadStats.ExactRunDuration = workerStats.ExactRunDuration
 			}
 
+			workloadStatsDump.WorkerStats[worker.GetIndex()] = &workerStats
+
 			log.Debugln(fmt.Sprintf("workload %s worker %d stats: %+v", workload.Name(), worker.GetIndex(), workerStats))
 		}
 
@@ -169,8 +180,12 @@ func process_results() {
 
 		workloadStats.Iops = math.Round(workloadStats.Iops*1000) / 1000
 
+		workloadStatsDump.Stats = &workloadStats
+
 		log.Infoln(fmt.Sprintf("workload %s stats: %+v", workload.Name(), workloadStats))
 	}
+
+	statsData.WriteStatsDumpToFile(stats_file)
 }
 
 func main() {
