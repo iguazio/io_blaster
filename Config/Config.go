@@ -114,14 +114,14 @@ type ConfigVars struct {
 }
 
 type ConfigField struct {
-	Type            string      `json:"type"`
-	Op              string      `json:"op"`
-	Format          string      `json:"format"`
-	ArrayArgs       []string    `json:"array_args"`
-	ArrayJoinString string      `json:"array_join_string"`
-	FormatArgs      []string    `json:"args"`
-	Value           interface{} `json:"value"`
-	VarName         string      `json:"var_name"`
+	Type            string        `json:"type"`
+	Op              string        `json:"op"`
+	Format          string        `json:"format"`
+	ArrayArgs       []int         `json:"array_args"`
+	ArrayJoinString string        `json:"array_join_string"`
+	FormatArgs      []interface{} `json:"args"`
+	Value           interface{}   `json:"value"`
+	VarName         string        `json:"var_name"`
 }
 
 type ConfigHttp struct {
