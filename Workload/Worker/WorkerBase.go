@@ -320,18 +320,38 @@ func (worker *WorkerBase) ParseField(fieldConfig *Config.ConfigField) interface{
 	case "FORMAT":
 		args := make([]interface{}, 0)
 		for _, argName := range fieldConfig.FormatArgs {
-			args = append(args, worker.calculatedVars[argName])
+			args = append(args, worker.calculatedVars[argName.(string)])
 		}
 		return fmt.Sprintf(fieldConfig.Format, args...)
 	case "ARRAY_FORMAT":
 		arrayIndexesInArgs := make([]int, 0)
 		args := make([]interface{}, 0)
 		for argIndex, argName := range fieldConfig.FormatArgs {
-			args = append(args, worker.calculatedVars[argName])
-			for _, arrayName := range fieldConfig.ArrayArgs {
-				if arrayName == argName {
-					arrayIndexesInArgs = append(arrayIndexesInArgs, argIndex)
+			if _, ok := argName.(string); ok {
+				args = append(args, worker.calculatedVars[argName.(string)])
+				for _, arrayArgsValue := range fieldConfig.ArrayArgs {
+					if argIndex == arrayArgsValue {
+						arrayIndexesInArgs = append(arrayIndexesInArgs, argIndex)
+					}
 				}
+			} else {
+				isArray := false
+				for _, arrayArgsValue := range fieldConfig.ArrayArgs {
+					if argIndex == arrayArgsValue {
+						arrayIndexesInArgs = append(arrayIndexesInArgs, argIndex)
+						isArray = true
+					}
+				}
+				if !isArray {
+					log.Panicln(fmt.Sprintf("Workload %s found array_format field with non-string arg that is not an array. field=%+v", worker.configWorkload.Name, fieldConfig))
+				}
+
+				argArrayLen := int64(argName.(float64))
+				argArray := make([]interface{}, argArrayLen)
+				for argArrayIndex := range argArray {
+					argArray[argArrayIndex] = argArrayIndex
+				}
+				args = append(args, argArray)
 			}
 		}
 		return Utils.ArrayFormat(fieldConfig.Format, args, arrayIndexesInArgs, fieldConfig.ArrayJoinString)

@@ -57,7 +57,7 @@
                 		"type" : "ARRAY_FORMAT",
                 		"format" : "'str_%v' : {'B': '%s'}",
                 		"args" : ["attrs_ids", "payload"],
-                		"array_args" : ["attrs_ids"],
+                		"array_args" : [0],
                     	"array_join_string" : ","
                     }
                 }

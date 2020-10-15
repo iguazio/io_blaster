@@ -87,14 +87,14 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 }
 ```
   
-###### config_field using array_format based on current var/arrays values (notice an example of how the array_format works can be found [here](https://play.golang.org/p/R1ckHvYuiD-))
+###### config_field using array_format based on current var/arrays values (notice an example of how the array_format works can be found [here](https://play.golang.org/p/QrTkCE-CPOS))
 ```
 { 	
     "type" : "ARRAY_FORMAT",  
     "format" : "dir_%s/file_%d", // the format to be used (golang format - can also use %v)
-    "array_args" : ["var_1_name"], // vars names must be names of vars containing arrays. 
+    "array_args" : [<array_arg_1_index>], // vars names must be names of vars containing arrays. 
     "array_join_string" : ",", // will be used to join array_format parts
-    "args" : ["var_1_name", "var_2_name"], // var names used as args for the format
+    "args" : ["var_1_name", "var_2_name"], // var names used as args for the format. can also contain number for range len. for example if array_args=[0] and args=[5] then it will auto generate array [0,1,2,3,4] in index 0 of the args
     "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
 }
 ```

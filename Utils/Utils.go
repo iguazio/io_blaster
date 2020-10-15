@@ -84,10 +84,11 @@ func ArrayFormat(format string, args []interface{}, arrayIndexesInArgs []int, ar
 	}
 
 	argsForFormat := make([]interface{}, len(args))
-	arrayIndexesInArgsIndex := 0
+	arrayIndexesInArgsIndex := arrayIndexesInArgs[0]
 	for argIndex, arg := range args {
-		if argIndex == arrayIndexesInArgsIndex {
+		if arrayIndexesInArgsIndex < numberOfArrays && argIndex == arrayIndexesInArgs[arrayIndexesInArgsIndex] {
 			argsForFormat[argIndex] = arg.([]interface{})[0]
+			arrayIndexesInArgsIndex++
 		} else {
 			argsForFormat[argIndex] = arg
 		}
@@ -96,13 +97,14 @@ func ArrayFormat(format string, args []interface{}, arrayIndexesInArgs []int, ar
 	arrayFormatParts := make([]string, totalIterationsNeeded)
 	for iterNum, currentArrayIndexLooping := 0, numberOfArrays-1; iterNum < totalIterationsNeeded; iterNum++ {
 		for currentArrayIndexes[currentArrayIndexLooping] == arrayLens[currentArrayIndexLooping] {
-			for arrayIndexToReset := currentArrayIndexLooping; arrayIndexToReset < numberOfArrays; arrayIndexToReset++ {
-				currentArrayIndexes[arrayIndexToReset] = 0
-				argsForFormat[arrayIndexesInArgs[arrayIndexToReset]] = args[arrayIndexesInArgs[arrayIndexToReset]].([]interface{})[0]
-			}
-			currentArrayIndexes[currentArrayIndexLooping-1]++
-			currentArrayIndexLooping = numberOfArrays - 1
+			currentArrayIndexes[currentArrayIndexLooping] = 0
+			argsForFormat[arrayIndexesInArgs[currentArrayIndexLooping]] = args[arrayIndexesInArgs[currentArrayIndexLooping]].([]interface{})[0]
+			currentArrayIndexLooping--
+			currentArrayIndexes[currentArrayIndexLooping]++
+
 		}
+		argsForFormat[arrayIndexesInArgs[currentArrayIndexLooping]] = args[arrayIndexesInArgs[currentArrayIndexLooping]].([]interface{})[currentArrayIndexes[currentArrayIndexLooping]]
+		currentArrayIndexLooping = numberOfArrays - 1
 		argsForFormat[arrayIndexesInArgs[currentArrayIndexLooping]] = args[arrayIndexesInArgs[currentArrayIndexLooping]].([]interface{})[currentArrayIndexes[currentArrayIndexLooping]]
 		arrayFormatParts[iterNum] = fmt.Sprintf(format, argsForFormat...)
 		currentArrayIndexes[currentArrayIndexLooping]++
