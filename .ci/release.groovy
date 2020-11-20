@@ -29,6 +29,7 @@ podTemplate(
                             "ARTIFACTORY_IGUAZIO_USERNAME=${artifactory_user}"
                             "ARTIFACTORY_IGUAZIO_SECRET=${artifactory_password}"
                         ]) {
+                            checkout scm
                             sh "goreleaser release"
                         }
                     }
