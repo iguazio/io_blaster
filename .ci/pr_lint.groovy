@@ -12,17 +12,22 @@ podTemplate(
         envVar(key: 'GO111MODULE', value: 'on'), 
         envVar(key: 'GOPROXY', value: 'https://goproxy.devops.iguazeng.com')
     ],
-  ) {
+) {
       node("ioblaster-lint") {
           common.notify_slack {
             stage('Run golangci-lint') {
+
                 container('golang') {
-                    sh "export"
+                    
                     checkout scm 
                     sh "go mod download"
                 }
+
                 container('golangci-lint') {
-                    sh "golangci-lint run -v"
+
+                    ansiColor('xterm') {
+                        sh "golangci-lint run -v"
+                    }
                 }
             }
           }

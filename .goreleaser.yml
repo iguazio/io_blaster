@@ -1,0 +1,42 @@
+project_name: io_blaster
+env:
+  - GO111MODULE=on
+  - GOPROXY=goproxy.devops.iguazeng.com
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: {{ .ProjectName }}
+    ldflags:
+      - -s -w -X github.com/iguazio/io_blaster/io_blaster.AppVersion={{ .Version }}
+archives:
+  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format: binary
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+artifactories:
+  - name: iguazio
+    target: https://artifactory.iguazeng.com/artifactory/example-repo-local/iguazio_naipi/{{ .ProjectName }}/{{ .Version }}/
+    mode: binary
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - Merge pull request
+      - Merge branch
