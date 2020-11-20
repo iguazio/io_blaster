@@ -10,7 +10,7 @@ podTemplate(containers: [
         envVar(key: 'GOPROXY', value: 'https://goproxy.devops.iguazeng.com')
     ],
   ) {
-      node("io_blaster-pr-lint-${label}") {
+      node("io-blaster-pr-lint-${label}") {
           common.notify_slack {
             stage('Check running containers') {
                 container('golang') {
