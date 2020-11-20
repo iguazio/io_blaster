@@ -1,25 +1,28 @@
 @Library('pipelinex@development') _
-label = "${UUID.randomUUID().toString()}"
 
-podTemplate(containers: [
-    containerTemplate(name: 'golang', image: 'golang:1.14.12', ttyEnabled: true, command: 'cat'),
-    containerTemplate(name: 'golangci-lint', image: 'golangci/golangci-lint:v1.32-alpine', ttyEnabled: true, command: 'cat'),
-  ],
+podTemplate(
+
+    label: 'ioblaster-lint',
+    containers: [
+        containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:4.0.1-1', workingDir: '/home/jenkins', resourceRequestCpu: '2000m', resourceLimitCpu: '2000m', resourceRequestMemory: '2048Mi', resourceLimitMemory: '2048Mi'),
+        containerTemplate(name: 'golang', image: 'golang:1.14.12', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'golangci-lint', image: 'golangci/golangci-lint:v1.32-alpine', workingDir: '/home/jenkins', ttyEnabled: true, command: 'cat'),
+    ],
     envVars: [
         envVar(key: 'GO111MODULE', value: 'on'), 
         envVar(key: 'GOPROXY', value: 'https://goproxy.devops.iguazeng.com')
     ],
   ) {
-      node("io-blaster-pr-lint-${label}") {
+      node("ioblaster-lint") {
           common.notify_slack {
-            stage('Check running containers') {
+            stage('Run golangci-lint') {
                 container('golang') {
                     sh "export"
                     checkout scm 
                     sh "go mod download"
                 }
                 container('golangci-lint') {
-                    sh "golangci-lint run"
+                    sh "golangci-lint run -v"
                 }
             }
           }
