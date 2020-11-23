@@ -26,8 +26,8 @@ podTemplate(
                     ]) {
                         withEnv([
                             "GITHUB_TOKEN=${github_token}",
-                            "ARTIFACTORY_IGUAZIO_USERNAME=${artifactory_user}"
-                            "ARTIFACTORY_IGUAZIO_SECRET=${artifactory_password}"
+                            "ARTIFACTORY_IGUAZIO_USERNAME=${artifactory_user}",
+                            "ARTIFACTORY_IGUAZIO_SECRET=${artifactory_password}",
                         ]) {
                             checkout scm
                             sh "goreleaser release"
