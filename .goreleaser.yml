@@ -28,7 +28,7 @@ archives:
       amd64: x86_64
 artifactories:
   - name: iguazio
-    target: https://artifactory.iguazeng.com/artifactory/example-repo-local/iguazio_naipi/{{ .ProjectName }}/{{ .Version }}/
+    target: https://artifactory.iguazeng.com/artifactory/iguazio_naipi/{{ .ProjectName }}/{{ .Version }}/
     mode: binary
 checksum:
   name_template: 'checksums.txt'

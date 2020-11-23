@@ -12,26 +12,20 @@ podTemplate(
           common.notify_slack {
             container('golang') {
 
-                stage('|Obtain goreleaser binary') {
-                    sh "curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh"
+                stage('Obtain sources') {
+                    checkout scm
+                    sh "curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | BINDIR=/usr/local/bin/ sh"
                 }
 
                 stage('Build and release binaries') {
 
                     withCredentials([
                         usernamePassword(credentialsId: 'iguazio-prod-artifactory-credentials',
-                            usernameVariable: 'artifactory_user',
-                            passwordVariable: 'artifactory_password'),
-                        string(credentialsId: git_mirror_user_token, variable: 'GIT_MIRROR_TOKEN')
+                            usernameVariable: 'ARTIFACTORY_IGUAZIO_USERNAME',
+                            passwordVariable: 'ARTIFACTORY_IGUAZIO_SECRET'),
+                        string(credentialsId: 'iguazio-prod-git-user-token', variable: 'GITHUB_TOKEN')
                     ]) {
-                        withEnv([
-                            "GITHUB_TOKEN=${github_token}",
-                            "ARTIFACTORY_IGUAZIO_USERNAME=${artifactory_user}",
-                            "ARTIFACTORY_IGUAZIO_SECRET=${artifactory_password}",
-                        ]) {
-                            checkout scm
-                            sh "goreleaser release"
-                        }
+                        sh "/usr/local/bin/goreleaser release"
                     }
                 }
             }
