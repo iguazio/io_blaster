@@ -27,7 +27,6 @@ artifactories:
   - name: iguazio
     target: https://artifactory.iguazeng.com/artifactory/iguazio_naipi/{{ .ProjectName }}/{{ .Version }}/
     mode: binary
-    checksum_header: -X-SHA256-Sum
     checksum: true
 checksum:
   name_template: 'checksums.txt'
