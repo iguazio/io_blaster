@@ -15,7 +15,7 @@ builds:
     goarch:
       - amd64
       - arm64
-    binary: {{ .ProjectName }}
+    binary: io_blaster
     ldflags:
       - -s -w -X github.com/iguazio/io_blaster/io_blaster.AppVersion={{ .Version }}
 archives:
