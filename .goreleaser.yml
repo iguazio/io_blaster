@@ -17,7 +17,7 @@ builds:
       - arm64
     binary: io_blaster
     ldflags:
-      - -s -w -X github.com/iguazio/io_blaster/main.AppVersion={{ .Version }}
+      - -s -w -X main.AppVersion={{ .Version }}
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     format: binary
@@ -27,8 +27,12 @@ artifactories:
   - name: iguazio
     target: https://artifactory.iguazeng.com/artifactory/iguazio_naipi/{{ .ProjectName }}/{{ .Version }}/
     mode: binary
+    checksum_header: -X-SHA256-Sum
+    checksum: true
 checksum:
   name_template: 'checksums.txt'
+  algorithm: sha256
+  disable: false
 changelog:
   sort: asc
   filters:
