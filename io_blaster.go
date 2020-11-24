@@ -26,9 +26,10 @@ var (
 
 	workload_manager Workload.WorkloadManager
 	workloads        map[string]Workload.IWorkload
-)
 
-const AppVersion = "1.2.1"
+	// will be overwritten by goreleaser
+	AppVersion = "development"
+)
 
 func parse_cmd_line_args() {
 	flag.BoolVar(&showVersion, "version", false, "show version")
