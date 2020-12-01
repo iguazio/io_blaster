@@ -10,10 +10,6 @@ import (
 )
 
 func CompareInterface(op string, a interface{}, b interface{}) (bool, error) {
-	if op == "==" {
-		return a == b, nil
-	}
-
 	var a_value float64
 	var b_value float64
 
@@ -30,6 +26,8 @@ func CompareInterface(op string, a interface{}, b interface{}) (bool, error) {
 	}
 
 	switch op {
+	case "==":
+		return a_value == b_value, nil
 	case ">=":
 		return a_value >= b_value, nil
 	case "<=":

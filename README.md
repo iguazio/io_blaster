@@ -64,7 +64,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 { 
     "type" : "CONST",  
     "value" : <value>, // can be string or number (not tested with complex structs)  
-    "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
+    "op" : "==", // used only for config_field in end_on_var_value/trigger_config.on_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
 }  
 ```
   
@@ -73,7 +73,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 {  
     "type" : "VAR",  
     "var_name" : "var_1_name", // will use the var current value
-    "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
+    "op" : "==", // used only for config_field in end_on_var_value/trigger_config.on_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
 }  
 ```
 
@@ -83,7 +83,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
     "type" : "FORMAT",  
     "format" : "dir_%s/file_%d", // the format to be used (golang format - can also use %v)    
     "args" : ["var_1_name", "var_2_name"], // var names used as args for the format
-    "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
+    "op" : "==", // used only for config_field in end_on_var_value/trigger_config.on_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
 }
 ```
   
@@ -95,8 +95,18 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
     "array_args" : [<array_arg_1_index>], // vars names must be names of vars containing arrays. 
     "array_join_string" : ",", // will be used to join array_format parts
     "args" : ["var_1_name", "var_2_name"], // var names used as args for the format. can also contain number for range len. for example if array_args=[0] and args=[5] then it will auto generate array [0,1,2,3,4] in index 0 of the args
-    "op" : "==", // used only for config_field in end_on_var_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
+    "op" : "==", // used only for config_field in end_on_var_value/trigger_config.on_value. set the op for the comparison. can be "==", ">", "<", ">=", "<="
 }
+```
+
+#### trigger_config should be a json with the following format:
+```
+{
+	"on_value" : <config_field>, // will be used to compare the value based on the op to the value of the var that is being triggered 
+	"var_to_set" : "var_1_name", // var to set if the trigger value comparison passed
+	"value_to_set" : <config_field> // value to set on the var
+}
+
 ```
   
 #### vars_config should be a json with the following format:  
@@ -115,15 +125,24 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
        4. config_field 
        5. response_value (after the resposne on the request)
     */
+    /*
+       notice about triggers:
+       1. triggers are optional (can omit the field from the var config)
+       2. triggers are only checked when the value changes as part of the var config. this means that const var trigger will only trigger once on the first setting of the value, enum var trigger will only trigger when the enum function of the var increase its value. in other words the triggers are not checked when value is changed by other trigger.
+       3. if a var defines several triggers then the var value before the triggers checking will be used in all the triggers on_value comparisons.
+       4. triggers can be used to define new vars. see example in https://github.com/iguazio/io_blaster/tree/master/test_files/test_trigger.json
+    */
     "const" : // used to define const values 
     {
         "var_1_name" : 
         { 
             "value" : <value> // can be string or number (not tested with complex structs)
+            "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
         },
         "var_2_name" : 
         { 
             "value" : <value> // can be string or number (not tested with complex structs)
+            "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
         },
     },
     "file" :
@@ -131,6 +150,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
         "var_3_name" : 
         { 
             "path" : "/tmp/payload.txt" // path to file containing the data (data is parsed as string data)
+            "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
         }
     },
     "random" : // can generate random int/string values (charset for random strings is a-z, A-Z, 0-9)
@@ -140,7 +160,8 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             "var_4_name" : // example of random string
             {
                 "type" : "STRING",
-                "length" : 100 // will generate random string with length=100               
+                "length" : 100 // will generate random string with length=100
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         },
         "worker_once" : // each worker will run random once so each worker will have different random values
@@ -150,6 +171,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
                 "type": "INT",
                 "min_value" : 0, // random value min value (inclusive)
                 "max_value" : 100 // random value max value (inclusive)
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         },
         "each" : // workers will calculate the var value with new random for each request
@@ -158,6 +180,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             {
                 "type" : "BASE64",
                 "length" : 100 // will generate random base64 string with original blob length=100
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         }
     },
@@ -168,6 +191,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             "var_7_name" :
             {
                 "min_value" : 0 // starting value of the enum
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         },
         "worker_each" : // each worker will run its own internal enum. worker increases the its var value by 1 for each request
@@ -175,6 +199,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             "var_8_name" :
             {
                 "min_value" : 10 // starting value of the enum
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         },
         "on_time" : // will increase var value only on interval (can be used to sync var increase between workloads)
@@ -183,6 +208,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             {
                 "min_value" : 0, // starting value of the enum
                 "interval": 1 // interval in seconds in which the enum will run the ++ (in the example each 1 sec the var will increase its value by 1)
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         }
     },
@@ -194,17 +220,20 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
             "field_path" : ["Records", "0", "Data"], // json field path needed to get the value from the response. empty array will use response data as blob. in this example the var value will be taken from response json field Records[0].Data (see https://godoc.org/github.com/jmoiron/jsonq for json field path info)
             "init_value" : <value>, // can be string or number (not tested with complex structs)  
             "expected_values" : [<config_field_1>, <config_field_2>] // list of expected values - panic on none expected value
+            "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
         }
     },
     "config_field"  : // var with value calculated like a config_field
     {
     	"var_11_name" : <config_field> // set the var value using config_field   	
+       "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
     },
     "dist" : // distribute values from an array var to the workers in a cyclic way. the value will be based on worker_index % array_len 
     {
     	"var_12_name" :
     	{
-    		"array_var" : <array_var_name> // must be name of var containg an array
+           "array_var" : <array_var_name> // must be name of var containg an array
+           "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
     	}
     }
 }

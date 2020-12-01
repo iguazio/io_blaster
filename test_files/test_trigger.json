@@ -1,0 +1,105 @@
+{
+	"workloads" : 
+	[
+		{
+			"name" : "workload_1",
+			"allowed_status" : 
+			[
+				"200"
+			],			
+			"start_time" : 0,
+			"duration" : 2,
+			"workers" : 1,			
+			"type" : "HTTP",
+			"vars" : 			
+			{					
+				"enum" : 
+				{												
+					"worker_each" :
+					{
+						"method_cycler" :
+						{
+							"min_value" : 1,
+							"triggers" : 
+							[
+								{
+									"on_value" : 
+									{
+										"type" : "CONST",
+										"op" : "==",
+										"value" : 1		
+									},
+									"var_to_set" : "method",
+									"value_to_set" : 
+									{
+										"type" : "CONST",
+										"value" : "PUT"					
+									}
+								},
+								{
+									"on_value" : 
+									{
+										"type" : "CONST",
+										"op" : "==",
+										"value" : 2			
+									},
+									"var_to_set" : "method",
+									"value_to_set" : 
+									{
+										"type" : "CONST",
+										"value" : "GET"					
+									}
+								},
+								{
+									"on_value" : 
+									{
+										"type" : "CONST",
+										"op" : "==",
+										"value" : 2			
+									},
+									"var_to_set" : "method_cycler",
+									"value_to_set" : 
+									{
+										"type" : "CONST",
+										"value" : 0					
+									}
+								}
+							]
+						}
+					}
+				}
+			},
+			"http_config" : 
+			{
+				"method" : 
+				{
+					"type" : "VAR",
+					"var_name" : "method"
+				},				
+				"url" : 
+				{
+					"type" : "CONST",
+					"value" : "http://127.0.0.1:8081/1/r_1"					
+				},
+				"headers" :
+				{
+					"ngx-guid" : 
+					{
+						"type" : "VAR",
+						"var_name" : "method_cycler"
+					},
+					"Authorization" :
+					{
+						"type" : "CONST",
+						"value" : "Basic aWd1YXppbzpkYXRhbEBrZSE="
+					}
+				},
+				"body" :
+				{
+					"type" : "CONST",
+					"value" : ""
+				}
+			}						
+		}
+	]	
+}

@@ -88,6 +88,7 @@ func (workload *WorkloadBase) CalculateWorkloadConstVars() {
 			log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", workload.Name, varName))
 		}
 		workload.calculatedWorkloadConstVars[varName] = varConfig.Value
+		workload.calculatedWorkloadConstVars.RunTriggers(varConfig.Triggers, varName, workload.Name())
 	}
 
 	for varName, varConfig := range workload.configWorkload.Vars.File {
@@ -102,6 +103,7 @@ func (workload *WorkloadBase) CalculateWorkloadConstVars() {
 
 		byteValue, _ := ioutil.ReadAll(file)
 		workload.calculatedWorkloadConstVars[varName] = string(byteValue)
+		workload.calculatedWorkloadConstVars.RunTriggers(varConfig.Triggers, varName, workload.Name())
 	}
 
 	if workload.configWorkload.Vars.Random != nil {
