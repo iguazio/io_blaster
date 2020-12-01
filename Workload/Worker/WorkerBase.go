@@ -152,6 +152,7 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 			log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 		}
 		worker.calculatedVars[varName] = varConfig.InitValue
+		worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
 	}
 
 	if worker.configWorkload.Vars.Random != nil {
@@ -165,6 +166,10 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 			}
 			worker.calculatedVars[varName] = varConfig.MinValue
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			if _, ok := worker.calculatedVars[varName].(float64); ok {
+				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
+			}
 		}
 
 		for varName, varConfig := range worker.configWorkload.Vars.Enum.WorkloadSimEach {
@@ -172,6 +177,10 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 			}
 			worker.calculatedVars[varName] = varConfig.MinValue + int64(worker.workerIndex)
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			if _, ok := worker.calculatedVars[varName].(float64); ok {
+				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
+			}
 		}
 
 		for varName, varConfig := range worker.configWorkload.Vars.Enum.OnTime {
@@ -179,6 +188,10 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 			}
 			worker.calculatedVars[varName] = varConfig.MinValue
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			if _, ok := worker.calculatedVars[varName].(float64); ok {
+				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
+			}
 		}
 	}
 
@@ -196,6 +209,7 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 		arrayVarLen := int64(len(arrayVar))
 		arrayIndex := int64(worker.workerIndex) % arrayVarLen
 		worker.calculatedVars[varName] = arrayVar[arrayIndex]
+		worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
 	}
 
 	// keep this var parsing last since it might depend on other vars
@@ -205,6 +219,7 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 			}
 			worker.calculatedVars[varName] = worker.ParseField(varConfig)
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
 		}
 	}
 }
@@ -219,17 +234,29 @@ func (worker *WorkerBase) CalculateNextVars() {
 	}
 
 	if worker.configWorkload.Vars.Enum != nil {
-		for varName, _ := range worker.configWorkload.Vars.Enum.WorkerEach {
+		for varName, varConfig := range worker.configWorkload.Vars.Enum.WorkerEach {
 			worker.calculatedVars[varName] = worker.calculatedVars[varName].(int64) + 1
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			if _, ok := worker.calculatedVars[varName].(float64); ok {
+				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
+			}
 		}
 
-		for varName, _ := range worker.configWorkload.Vars.Enum.WorkloadSimEach {
+		for varName, varConfig := range worker.configWorkload.Vars.Enum.WorkloadSimEach {
 			worker.calculatedVars[varName] = worker.calculatedVars[varName].(int64) + worker.configWorkload.NumWorkers
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			if _, ok := worker.calculatedVars[varName].(float64); ok {
+				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
+			}
 		}
 
 		for varName, varConfig := range worker.configWorkload.Vars.Enum.OnTime {
 			if worker.currentRunTime%varConfig.Interval == 0 {
 				worker.calculatedVars[varName] = varConfig.MinValue + worker.currentRunTime
+				worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+				if _, ok := worker.calculatedVars[varName].(float64); ok {
+					worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
+				}
 			}
 		}
 	}
@@ -240,6 +267,7 @@ func (worker *WorkerBase) CalculateNextVars() {
 	if worker.configWorkload.Vars.ConfigField != nil {
 		for varName, varConfig := range worker.configWorkload.Vars.ConfigField {
 			worker.calculatedVars[varName] = worker.ParseField(varConfig)
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
 		}
 	}
 }
@@ -308,62 +336,13 @@ func (worker *WorkerBase) UpdateResponseVars(statusStr string, responseData stri
 					worker.worker.PanicLogCurrentIO(err)
 				}
 			}
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
 		}
 	}
 }
 
 func (worker *WorkerBase) ParseField(fieldConfig *Config.ConfigField) interface{} {
-	if fieldConfig == nil {
-		return ""
-	}
-	switch fieldConfig.Type {
-	case "FORMAT":
-		args := make([]interface{}, 0)
-		for _, argName := range fieldConfig.FormatArgs {
-			args = append(args, worker.calculatedVars[argName.(string)])
-		}
-		return fmt.Sprintf(fieldConfig.Format, args...)
-	case "ARRAY_FORMAT":
-		arrayIndexesInArgs := make([]int, 0)
-		args := make([]interface{}, 0)
-		for argIndex, argName := range fieldConfig.FormatArgs {
-			if _, ok := argName.(string); ok {
-				args = append(args, worker.calculatedVars[argName.(string)])
-				for _, arrayArgsValue := range fieldConfig.ArrayArgs {
-					if argIndex == arrayArgsValue {
-						arrayIndexesInArgs = append(arrayIndexesInArgs, argIndex)
-					}
-				}
-			} else {
-				isArray := false
-				for _, arrayArgsValue := range fieldConfig.ArrayArgs {
-					if argIndex == arrayArgsValue {
-						arrayIndexesInArgs = append(arrayIndexesInArgs, argIndex)
-						isArray = true
-					}
-				}
-				if !isArray {
-					log.Panicln(fmt.Sprintf("Workload %s found array_format field with non-string arg that is not an array. field=%+v", worker.configWorkload.Name, fieldConfig))
-				}
-
-				argArrayLen := int64(argName.(float64))
-				argArray := make([]interface{}, argArrayLen)
-				for argArrayIndex := range argArray {
-					argArray[argArrayIndex] = argArrayIndex
-				}
-				args = append(args, argArray)
-			}
-		}
-		return Utils.ArrayFormat(fieldConfig.Format, args, arrayIndexesInArgs, fieldConfig.ArrayJoinString)
-	case "CONST":
-		return fieldConfig.Value
-	case "VAR":
-		return worker.calculatedVars[fieldConfig.VarName]
-	default:
-		log.Panicln(fmt.Sprintf("Workload %s found field with unsupported type. field=%+v", worker.configWorkload.Name, fieldConfig))
-		break
-	}
-	return nil
+	return Config.ParseField(fieldConfig, worker.calculatedVars, worker.configWorkload.Name)
 }
 
 func (worker *WorkerBase) GetRequestUid() uint64 {

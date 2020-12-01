@@ -1,86 +1,48 @@
 package Config
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/iguazio/io_blaster/Utils"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"math/rand"
-	"os"
 	"sync"
 	"time"
 )
 
-var (
-	LatencyGroups = []int64{ // all latencies are in usec
-		0, 100, 200, 300, 400, 500, 600, 700, 800, 900, // 0 msec - 1 msec
-		1000, 1200, 1400, 1600, 1800, // 1 msec - 2 msec
-		2000, 2500, 3000, 4000, 5000, // 2 msec - 10 msec
-		10000, 25000, 50000, 75000, // 10 msec - 100 msec
-		100000, 20000, 30000, 40000, 50000, 750000, // 100 msec - 1 sec
-		1000000, 2000000, 3000000, 4000000, 5000000, // 1 sec - 10 sec
-		10000000, 20000000, 40000000, 60000000, 80000000, 100000000, 120000000} // 10 sec - 120 sec
-)
-
-type Stats struct {
-	ExactRunDuration   float64            `json:"exact_run_duration"`
-	TotalRequests      uint64             `json:"total_requests"`
-	Iops               float64            `json:"iops"`
-	StatusCounters     map[string]uint64  `json:"status_counters"`
-	StatusCountersPct  map[string]float64 `json:"status_counters_pct"`
-	LatencyCounters    map[int64]uint64   `json:"latency_counters"`
-	LatencyCountersPct map[int64]float64  `json:"latency_counters_pct"`
-}
-
-type StatsDumpWorkload struct {
-	WorkerStats map[int64]*Stats `json:"workers"`
-	Stats       *Stats           `json:"stats"`
-}
-
-type StatsDumpIoBlaster struct {
-	WorkloadsStats map[string]*StatsDumpWorkload `json:"workloads"`
-}
-
-func (statsDump *StatsDumpIoBlaster) WriteStatsDumpToFile(statsFile string) {
-	if statsFile != "" {
-		statsData, _ := json.MarshalIndent(statsDump, "", " ")
-		_ = ioutil.WriteFile(statsFile, statsData, 0644)
-	}
-}
-
-func GetLatencyGroup(latency int64) int64 {
-	for groupIndex := 0; groupIndex < len(LatencyGroups)-1; groupIndex++ {
-		if latency < LatencyGroups[groupIndex+1] {
-			return LatencyGroups[groupIndex]
-		}
-	}
-	return LatencyGroups[len(LatencyGroups)-1]
-}
-
 type CalculatedVars map[string]interface{}
 
+type ConfigVarsTrigger struct {
+	OnValue    *ConfigField `json:"on_value"`
+	VarToSet   string       `json:"var_to_set"`
+	ValueToSet *ConfigField `json:"value_to_set"`
+}
+
 type ConfigVarsConst struct {
-	Value interface{} `json:"value"`
+	Value    interface{}          `json:"value"`
+	Triggers []*ConfigVarsTrigger `json:"triggers"`
 }
 
 type ConfigVarsFile struct {
-	Path string `json:"path"`
+	Path     string               `json:"path"`
+	Triggers []*ConfigVarsTrigger `json:"triggers"`
 }
 
 type ConfigVarsRandomOrEnum struct {
-	Type     string `json:"type"`
-	Length   int    `json:"length"`
-	MinValue int64  `json:"min_value"`
-	MaxValue int64  `json:"max_value"`
-	Interval int64  `json:"interval"`
+	Type     string               `json:"type"`
+	Length   int                  `json:"length"`
+	MinValue int64                `json:"min_value"`
+	MaxValue int64                `json:"max_value"`
+	Interval int64                `json:"interval"`
+	Triggers []*ConfigVarsTrigger `json:"triggers"`
 }
 
 type ConfigVarResponseValue struct {
-	UpdateOnStatus []string       `json:"update_on_status"`
-	FieldPath      []string       `json:"field_path"`
-	InitValue      interface{}    `json:"init_value"`
-	ExpectedValues []*ConfigField `json:"expected_values"`
+	UpdateOnStatus []string             `json:"update_on_status"`
+	FieldPath      []string             `json:"field_path"`
+	InitValue      interface{}          `json:"init_value"`
+	ExpectedValues []*ConfigField       `json:"expected_values"`
+	Triggers       []*ConfigVarsTrigger `json:"triggers"`
+}
+
+type ConfigVarsDist struct {
+	ArrayVarName string               `json:"array_var"`
+	Triggers     []*ConfigVarsTrigger `json:"triggers"`
 }
 
 type ConfigVarsRandomOrEnumMap map[string]*ConfigVarsRandomOrEnum
@@ -99,10 +61,6 @@ type ConfigVarsEnum struct {
 	OnTime          ConfigVarsRandomOrEnumMap `json:"on_time"`
 }
 
-type ConfigVarsDist struct {
-	ArrayVarName string `json:"array_var"`
-}
-
 type ConfigVars struct {
 	Const         map[string]*ConfigVarsConst        `json:"const"`
 	File          map[string]*ConfigVarsFile         `json:"file"`
@@ -114,14 +72,15 @@ type ConfigVars struct {
 }
 
 type ConfigField struct {
-	Type            string        `json:"type"`
-	Op              string        `json:"op"`
-	Format          string        `json:"format"`
-	ArrayArgs       []int         `json:"array_args"`
-	ArrayJoinString string        `json:"array_join_string"`
-	FormatArgs      []interface{} `json:"args"`
-	Value           interface{}   `json:"value"`
-	VarName         string        `json:"var_name"`
+	Type            string               `json:"type"`
+	Op              string               `json:"op"`
+	Format          string               `json:"format"`
+	ArrayArgs       []int                `json:"array_args"`
+	ArrayJoinString string               `json:"array_join_string"`
+	FormatArgs      []interface{}        `json:"args"`
+	Value           interface{}          `json:"value"`
+	VarName         string               `json:"var_name"`
+	Triggers        []*ConfigVarsTrigger `json:"triggers"`
 }
 
 type ConfigHttp struct {
@@ -161,54 +120,4 @@ type ConfigIoBlaster struct {
 	Workloads      []*ConfigWorkload `json:"workloads"`
 	WorkloadsMap   map[string]*ConfigWorkload
 	CurrentRunTime int64
-}
-
-func VarRunRandom(varConfig *ConfigVarsRandomOrEnum) interface{} {
-	switch varConfig.Type {
-	case "STRING":
-		if varConfig.Length == 0 {
-			log.Panicln(fmt.Sprintf("Found random string var with legnth=0. var=%+v", varConfig))
-		}
-		return Utils.GenerateRandomString(varConfig.Length)
-	case "BASE64":
-		if varConfig.Length == 0 {
-			log.Panicln(fmt.Sprintf("Found random base64 var with legnth=0. var=%+v", varConfig))
-		}
-		return Utils.GenerateRandomBase64(varConfig.Length)
-	case "INT":
-		if varConfig.MaxValue <= varConfig.MinValue {
-			log.Panicln(fmt.Sprintf("Found random int var with max_value <= min_value. var=%+v", varConfig))
-		}
-		var seededRand *rand.Rand = Utils.GetSeededRandom()
-		return seededRand.Int63n(varConfig.MaxValue-varConfig.MinValue+1) + varConfig.MinValue
-	default:
-		log.Panicln(fmt.Sprintf("Found random var with unsupported type. var=%+v", varConfig))
-	}
-
-	return nil
-}
-
-func (calculatedVars CalculatedVars) CalculatedRandomVarsConfig(workloadName string, configVarsRandomOrEnumMap ConfigVarsRandomOrEnumMap, assertExist bool) {
-	for varName, varConfig := range configVarsRandomOrEnumMap {
-		if assertExist {
-			if _, ok := calculatedVars[varName]; ok {
-				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", workloadName, varName))
-			}
-		}
-		calculatedVars[varName] = VarRunRandom(varConfig)
-	}
-}
-
-func (config *ConfigIoBlaster) LoadConfig(config_file_path string) {
-	json_file, err := os.Open(config_file_path)
-	if err != nil {
-		log.Panicln("Failed to open config file")
-	}
-	defer json_file.Close()
-
-	byteValue, _ := ioutil.ReadAll(json_file)
-	err = json.Unmarshal(byteValue, config)
-	if err != nil {
-		log.Panicln("Failed to parse config file json", err)
-	}
 }
