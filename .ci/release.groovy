@@ -23,6 +23,9 @@ podTemplate(
                         usernamePassword(credentialsId: 'iguazio-prod-artifactory-credentials',
                             usernameVariable: 'ARTIFACTORY_IGUAZIO_USERNAME',
                             passwordVariable: 'ARTIFACTORY_IGUAZIO_SECRET'),
+                        usernamePassword(credentialsId: 'iguazio-prod-artifactory-credentials',
+                            usernameVariable: 'ARTIFACTORY_NAIPI_USERNAME',
+                            passwordVariable: 'ARTIFACTORY_NAIPI_SECRET'),
                         string(credentialsId: 'iguazio-prod-git-user-token', variable: 'GITHUB_TOKEN')
                     ]) {
                         sh "/usr/local/bin/goreleaser release"
