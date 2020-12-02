@@ -12,22 +12,31 @@ import (
 func CompareInterface(op string, a interface{}, b interface{}) (bool, error) {
 	var a_value float64
 	var b_value float64
+	use_origin_value := false
 
 	if _, ok := a.(int64); ok {
 		a_value = float64(a.(int64))
-	} else {
+	} else if _, ok := a.(float64); ok {
 		a_value = a.(float64)
+	} else {
+		use_origin_value = true
 	}
 
 	if _, ok := b.(int64); ok {
 		b_value = float64(b.(int64))
-	} else {
+	} else if _, ok := b.(float64); ok {
 		b_value = b.(float64)
+	} else {
+		use_origin_value = true
 	}
 
 	switch op {
 	case "==":
-		return a_value == b_value, nil
+		if use_origin_value {
+			return a == b, nil
+		} else {
+			return a_value == b_value, nil
+		}
 	case ">=":
 		return a_value >= b_value, nil
 	case "<=":
