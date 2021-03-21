@@ -88,8 +88,8 @@ func (worker *WorkerShell) DebugLogCurrentIO(err error) {
 
 func (worker *WorkerShell) PanicLogCurrentIO(err error) {
 	if err != nil {
-		log.Panicln(fmt.Sprintf("workload=%s worker=%d host=%s user=%s status=%s latency=%d err=%s\ncmd=\n%s\n\noutput=\n%s\n", worker.configWorkload.Name, worker.workerIndex, worker.sshConfig.Host, worker.sshConfig.User, worker.currentIOStatus, worker.currentIOLatency, err.Error(), worker.currentCmd, worker.currentCmdOutput))
+		log.Panicln(fmt.Sprintf("workload=%s worker=%d host=%s user=%s status=%s latency=%d err=%s\ncmd=\n%s\n\noutput=\n%s\ncalculatedVars=%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.sshConfig.Host, worker.sshConfig.User, worker.currentIOStatus, worker.currentIOLatency, err.Error(), worker.currentCmd, worker.currentCmdOutput, worker.calculatedVars))
 	} else {
-		log.Panicln(fmt.Sprintf("workload=%s worker=%d host=%s user=%s status=%s latency=%d\ncmd=\n%s\n\noutput=\n%s\n", worker.configWorkload.Name, worker.workerIndex, worker.sshConfig.Host, worker.sshConfig.User, worker.currentIOStatus, worker.currentIOLatency, worker.currentCmd, worker.currentCmdOutput))
+		log.Panicln(fmt.Sprintf("workload=%s worker=%d host=%s user=%s status=%s latency=%d\ncmd=\n%s\n\noutput=\n%s\ncalculatedVars=%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.sshConfig.Host, worker.sshConfig.User, worker.currentIOStatus, worker.currentIOLatency, worker.currentCmd, worker.currentCmdOutput, worker.calculatedVars))
 	}
 }

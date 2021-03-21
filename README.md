@@ -23,7 +23,10 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
 
 #### Config file should be a json with the following format:  
 ```
-{[workload_config_1, workload_config_2, ...]}
+{
+    "vars" : <vars_config>, // define global variables to be used by the workloads/workerss. check vars_config format below. only vars that are calculated once can be used here (const, file, random.once, random.array_once, enum.array_once)  
+    "workloads" : [workload_config_1, workload_config_2, ...],       
+}
 ```
 
 #### workload_config is a json in one of the following format:  
@@ -183,12 +186,22 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
                 "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
         }
+        "array_once" : // workload/global will generate an array with <array_length> length and will then generate random data based on the params for each array index
+        {
+        	"var_7_name" : 
+        	{
+        		"type" : "STRING",
+                "length" : 100 // will generate random string with length=100
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
+                "array_length" : 4, // used only in array_once vars to set the size of the array to be generated
+        	}
+        }
     },
     "enum" : 
     {
         "workload_sim_each" : // simulate 1 enum per workload var (only simulate so no thread sync is needed). each worker starts from min_value+worker_index (instead of just min_value) and worker increases the var value by workers number instead of by 1 for each request
         {
-            "var_7_name" :
+            "var_8_name" :
             {
                 "min_value" : 0 // starting value of the enum
                 "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
@@ -196,7 +209,7 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
         },
         "worker_each" : // each worker will run its own internal enum. worker increases the its var value by 1 for each request
         {
-            "var_8_name" :
+            "var_9_name" :
             {
                 "min_value" : 10 // starting value of the enum
                 "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
@@ -204,33 +217,43 @@ io_blaster is still a work in progress and currently contain only HTTP, remote s
         },
         "on_time" : // will increase var value only on interval (can be used to sync var increase between workloads)
         {
-            "var_9_name" :
+            "var_10_name" :
             {
                 "min_value" : 0, // starting value of the enum
                 "interval": 1 // interval in seconds in which the enum will run the ++ (in the example each 1 sec the var will increase its value by 1)
                 "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
             }
+        },
+        "array_once" : // workload/global will generate an array with <array_length> length and will then enumarate values into the array starting from <min_value>
+        {
+        	"var_11_name" : 
+        	{
+        		"min_value" : 0 // starting value of the enum
+                "triggers" : [<trigger_config_1>, <trigger_config_2>, ...], // define triggers on the var
+                "array_length" : 4, // used only in array_once vars to set the size of the array to be generated
+        	}
         }
     },
     "response_value" : // vars with value taken from the response
     {
-        "var_10_name" :
+        "var_12_name" :
         {
             "update_on_status" : ["200"], // will only parse the value on responses with this statuses.
             "field_path" : ["Records", "0", "Data"], // json field path needed to get the value from the response. empty array will use response data as blob. in this example the var value will be taken from response json field Records[0].Data (see https://godoc.org/github.com/jmoiron/jsonq for json field path info)
             "init_value" : <value>, // can be string or number (not tested with complex structs)  
-            "expected_values" : [<config_field_1>, <config_field_2>] // list of expected values - panic on none expected value
+            "expected_values" : [<config_field_1>, <config_field_2>], // list of expected values - panic on none expected value
+            "expected_values_array_vars" : [var_11_name], // list of var names containing the expected values
             "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
         }
     },
     "config_field"  : // var with value calculated like a config_field
     {
-    	"var_11_name" : <config_field> // set the var value using config_field   	
+    	"var_13_name" : <config_field> // set the var value using config_field   	
        "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
     },
     "dist" : // distribute values from an array var to the workers in a cyclic way. the value will be based on worker_index % array_len 
     {
-    	"var_12_name" :
+    	"var_14_name" :
     	{
            "array_var" : <array_var_name> // must be name of var containg an array
            "triggers" : [<trigger_config_1>, <trigger_config_2>, ...] // define triggers on the var
@@ -268,7 +291,6 @@ For more accurate understanding of the config file format check some of the [tes
 
 ## planned features
 * improve enum vars to support inc/dec by some const value instead of just inc by 1
-* add support for global const vars - will allow to define const/file/random.global_once vars in 1 global vars area so wont need to redefine for each workload.
 * add support for arrayed response_value vars - same idea as in arrayed_format. this will help if you have a response containing an array and you want to load,verify the whole array
 * add option to limit request/response payload output length when logging them on error or when running in debug mode (to not spam the logs)
 * add default log path when none is given (<config_path>.log)

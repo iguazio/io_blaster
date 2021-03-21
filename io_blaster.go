@@ -24,8 +24,9 @@ var (
 	verbose      bool = false
 	stats_file   string
 
-	workload_manager Workload.WorkloadManager
-	workloads        map[string]Workload.IWorkload
+	workload_manager          Workload.WorkloadManager
+	workloads                 map[string]Workload.IWorkload
+	calculatedGlobalConstVars Config.CalculatedVars
 
 	// will be overwritten by goreleaser
 	AppVersion = "development"
@@ -69,15 +70,19 @@ func init_log() {
 	}
 
 	file_name := fmt.Sprintf("%s.log", results_file)
-	var err error = nil
+	var err error
 	log_file, err = os.Create(file_name)
 	if err != nil {
 		log.Panicln("failed to open log file")
 	} else {
-		var log_writers io.Writer
-		log_writers = io.MultiWriter(os.Stdout, log_file)
+		var log_writers io.Writer = io.MultiWriter(os.Stdout, log_file)
 		log.SetOutput(log_writers)
 	}
+}
+
+func initGlobalVars() {
+	calculatedGlobalConstVars = make(Config.CalculatedVars)
+	calculatedGlobalConstVars.CalculateConstVars("Global vars", config.Vars)
 }
 
 func create_workloads() {
@@ -115,12 +120,10 @@ func create_workloads() {
 		switch workload_config.Type {
 		case "HTTP":
 			workload = new(Workload.WorkloadHttp)
-			workload.Init(&config, int64(workloadIndex))
-			break
+			workload.Init(&config, int64(workloadIndex), calculatedGlobalConstVars)
 		case "SHELL":
 			workload = new(Workload.WorkloadShell)
-			workload.Init(&config, int64(workloadIndex))
-			break
+			workload.Init(&config, int64(workloadIndex), calculatedGlobalConstVars)
 		default:
 			log.Panicln(fmt.Sprintf("Found workload with unsupported type. %+v", workload_config))
 		}
@@ -139,10 +142,10 @@ func process_results() {
 		workloadStatsDump := new(Config.StatsDumpWorkload)
 		workloadStatsDump.WorkerStats = make(map[int64]*Config.Stats)
 		statsData.WorkloadsStats[workload.Name()] = workloadStatsDump
-		workloadStats.StatusCounters = make(map[string]uint64, 0)
-		workloadStats.StatusCountersPct = make(map[string]float64, 0)
-		workloadStats.LatencyCounters = make(map[int64]uint64, 0)
-		workloadStats.LatencyCountersPct = make(map[int64]float64, 0)
+		workloadStats.StatusCounters = make(map[string]uint64)
+		workloadStats.StatusCountersPct = make(map[string]float64)
+		workloadStats.LatencyCounters = make(map[int64]uint64)
+		workloadStats.LatencyCountersPct = make(map[int64]float64)
 
 		for _, worker := range workload.GetWorkers() {
 			workerStats := worker.GetStats()
@@ -195,6 +198,7 @@ func main() {
 	init_log()
 	log.Infoln("io_blaster started")
 	config.LoadConfig(config_file)
+	initGlobalVars()
 	create_workloads()
 	workload_manager.Init(&config, workloads)
 	workload_manager.Run()

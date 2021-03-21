@@ -9,9 +9,9 @@ type WorkloadShell struct {
 	WorkloadBase
 }
 
-func (workload *WorkloadShell) Init(config *Config.ConfigIoBlaster, workloadIndex int64) {
+func (workload *WorkloadShell) Init(config *Config.ConfigIoBlaster, workloadIndex int64, calculatedGlobalConstVars Config.CalculatedVars) {
 	workload.workloadHooks.createWorker = createShellWorker
-	workload.WorkloadBase.Init(config, workloadIndex)
+	workload.WorkloadBase.Init(config, workloadIndex, calculatedGlobalConstVars)
 }
 
 func createShellWorker() Worker.IWorker {
