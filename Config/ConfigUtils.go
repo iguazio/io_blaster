@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func ParseField(fieldConfig *ConfigField, calculatedVars CalculatedVars, workloadName string) interface{} {
+func ParseField(fieldConfig *ConfigField, calculatedVars CalculatedVars, varsConfigLogPrefixString string) interface{} {
 	if fieldConfig == nil {
 		return ""
 	}
@@ -41,7 +41,7 @@ func ParseField(fieldConfig *ConfigField, calculatedVars CalculatedVars, workloa
 					}
 				}
 				if !isArray {
-					log.Panicln(fmt.Sprintf("Workload %s found array_format field with non-string arg that is not an array. field=%+v", workloadName, fieldConfig))
+					log.Panicln(fmt.Sprintf("%s found array_format field with non-string arg that is not an array. field=%+v", varsConfigLogPrefixString, fieldConfig))
 				}
 
 				argArrayLen := int64(argName.(float64))
@@ -58,8 +58,7 @@ func ParseField(fieldConfig *ConfigField, calculatedVars CalculatedVars, workloa
 	case "VAR":
 		return calculatedVars[fieldConfig.VarName]
 	default:
-		log.Panicln(fmt.Sprintf("Workload %s found field with unsupported type. field=%+v", workloadName, fieldConfig))
-		break
+		log.Panicln(fmt.Sprintf("%s found field with unsupported type. field=%+v", varsConfigLogPrefixString, fieldConfig))
 	}
 	return nil
 }
@@ -89,27 +88,99 @@ func VarRunRandom(varConfig *ConfigVarsRandomOrEnum) interface{} {
 	return nil
 }
 
-func (calculatedVars CalculatedVars) CalculatedRandomVarsConfig(workloadName string, configVarsRandomOrEnumMap ConfigVarsRandomOrEnumMap, assertExist bool) {
+func (calculatedVars CalculatedVars) CalculatedRandomVarsConfig(varsConfigLogPrefixString string, configVarsRandomOrEnumMap ConfigVarsRandomOrEnumMap, assertExist bool) {
 	for varName, varConfig := range configVarsRandomOrEnumMap {
 		if assertExist {
 			if _, ok := calculatedVars[varName]; ok {
-				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", workloadName, varName))
+				log.Panicln(fmt.Sprintf("%s contain 2 vars with same name %s", varsConfigLogPrefixString, varName))
 			}
 		}
 		calculatedVars[varName] = VarRunRandom(varConfig)
-		calculatedVars.RunTriggers(varConfig.Triggers, varName, workloadName)
+		calculatedVars.RunTriggers(varConfig.Triggers, varName, varsConfigLogPrefixString)
 	}
 }
 
-func (calculatedVars CalculatedVars) RunTriggers(triggers []*ConfigVarsTrigger, varName string, workloadName string) {
+func (calculatedVars CalculatedVars) RunTriggers(triggers []*ConfigVarsTrigger, varName string, varsConfigLogPrefixString string) {
 	varValue := calculatedVars[varName]
 	for _, triggerConfig := range triggers {
-		if compare_res, err := Utils.CompareInterface(triggerConfig.OnValue.Op, varValue, ParseField(triggerConfig.OnValue, calculatedVars, workloadName)); err != nil {
-			log.Panicln(fmt.Sprintf("Workload %s found trigger config with unsupported op or missmatched value types. config=%s", workloadName, triggerConfig))
+		if compare_res, err := Utils.CompareInterface(triggerConfig.OnValue.Op, varValue, ParseField(triggerConfig.OnValue, calculatedVars, varsConfigLogPrefixString)); err != nil {
+			log.Panicln(fmt.Sprintf("%s found trigger config with unsupported op or missmatched value types. config=%+v", varsConfigLogPrefixString, triggerConfig))
 		} else if compare_res {
-			calculatedVars[triggerConfig.VarToSet] = ParseField(triggerConfig.ValueToSet, calculatedVars, workloadName)
+			calculatedVars[triggerConfig.VarToSet] = ParseField(triggerConfig.ValueToSet, calculatedVars, varsConfigLogPrefixString)
 		}
 	}
+}
+
+func (calculatedVars CalculatedVars) CalculateConstVars(varsConfigLogPrefixString string, vars *ConfigVars) {
+	if vars == nil {
+		return
+	}
+
+	for varName, varConfig := range vars.Const {
+		if _, ok := calculatedVars[varName]; ok {
+			log.Panicln(fmt.Sprintf("%s contain 2 vars with same name %s", varsConfigLogPrefixString, varName))
+		}
+		calculatedVars[varName] = varConfig.Value
+		calculatedVars.RunTriggers(varConfig.Triggers, varName, varsConfigLogPrefixString)
+	}
+
+	for varName, varConfig := range vars.File {
+		if _, ok := calculatedVars[varName]; ok {
+			log.Panicln(fmt.Sprintf("%s contain 2 vars with same name %s", varsConfigLogPrefixString, varName))
+		}
+		file, err := os.Open(varConfig.Path)
+		if err != nil {
+			log.Panicln(fmt.Sprintf("Failed to open file %s from var %s", varConfig.Path, varName))
+		}
+		defer file.Close()
+
+		byteValue, _ := ioutil.ReadAll(file)
+		calculatedVars[varName] = string(byteValue)
+		calculatedVars.RunTriggers(varConfig.Triggers, varName, varsConfigLogPrefixString)
+	}
+
+	if vars.Random != nil {
+		calculatedVars.CalculatedRandomVarsConfig(varsConfigLogPrefixString, vars.Random.Once, true)
+
+		for varName, varConfig := range vars.Random.ArrayOnce {
+			if _, ok := calculatedVars[varName]; ok {
+				log.Panicln(fmt.Sprintf("%s contain 2 vars with same name %s", varsConfigLogPrefixString, varName))
+			}
+			if varConfig.ArrayLength <= 0 {
+				log.Panicln(fmt.Sprintf("%s contain random.array_once var with bad array_length. var name %s", varsConfigLogPrefixString, varName))
+			}
+			calculatedVars[varName] = make([]interface{}, varConfig.ArrayLength)
+			for i := int64(0); i < varConfig.ArrayLength; i++ {
+				calculatedVars[varName].([]interface{})[i] = VarRunRandom(varConfig)
+			}
+			calculatedVars.RunTriggers(varConfig.Triggers, varName, varsConfigLogPrefixString)
+		}
+	}
+
+	if vars.Enum != nil {
+		for varName, varConfig := range vars.Enum.ArrayOnce {
+			if _, ok := calculatedVars[varName]; ok {
+				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", varsConfigLogPrefixString, varName))
+			}
+			if varConfig.ArrayLength <= 0 {
+				log.Panicln(fmt.Sprintf("%s contain enum.array_once var with bad array_length. var name %s", varsConfigLogPrefixString, varName))
+			}
+			calculatedVars[varName] = make([]interface{}, varConfig.ArrayLength)
+			for i := int64(0); i < varConfig.ArrayLength; i++ {
+				calculatedVars[varName].([]interface{})[i] = varConfig.MinValue + i
+			}
+			calculatedVars.RunTriggers(varConfig.Triggers, varName, varsConfigLogPrefixString)
+			for i := int64(0); i < varConfig.ArrayLength; i++ {
+				if _, ok := calculatedVars[varName].([]interface{})[i].(float64); ok {
+					calculatedVars[varName].([]interface{})[i] = int64(calculatedVars[varName].([]interface{})[i].(float64))
+				}
+			}
+		}
+	}
+}
+
+func (configWorkload *ConfigWorkload) GetVarsConfigLogPrefix() string {
+	return fmt.Sprintf("Workload %s vars", configWorkload.Name)
 }
 
 func (config *ConfigIoBlaster) LoadConfig(config_file_path string) {

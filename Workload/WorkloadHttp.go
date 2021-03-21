@@ -9,9 +9,9 @@ type WorkloadHttp struct {
 	WorkloadBase
 }
 
-func (workload *WorkloadHttp) Init(config *Config.ConfigIoBlaster, workloadIndex int64) {
+func (workload *WorkloadHttp) Init(config *Config.ConfigIoBlaster, workloadIndex int64, calculatedGlobalConstVars Config.CalculatedVars) {
 	workload.workloadHooks.createWorker = createHttpWorker
-	workload.WorkloadBase.Init(config, workloadIndex)
+	workload.WorkloadBase.Init(config, workloadIndex, calculatedGlobalConstVars)
 }
 
 func createHttpWorker() Worker.IWorker {

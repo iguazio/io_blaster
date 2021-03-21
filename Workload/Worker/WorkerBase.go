@@ -54,10 +54,10 @@ func (worker *WorkerBase) Init(config *Config.ConfigIoBlaster, configWorkload *C
 	worker.configWorkload = configWorkload
 	worker.workloadIndex = workloadIndex
 	worker.workerIndex = workerIndex
-	worker.stats.StatusCounters = make(map[string]uint64, 0)
-	worker.stats.StatusCountersPct = make(map[string]float64, 0)
-	worker.stats.LatencyCounters = make(map[int64]uint64, 0)
-	worker.stats.LatencyCountersPct = make(map[int64]float64, 0)
+	worker.stats.StatusCounters = make(map[string]uint64)
+	worker.stats.StatusCountersPct = make(map[string]float64)
+	worker.stats.LatencyCounters = make(map[int64]uint64)
+	worker.stats.LatencyCountersPct = make(map[int64]float64)
 	worker.calculatedWorkloadConstVars = calculatedWorkloadConstVars
 }
 
@@ -86,7 +86,7 @@ func (worker *WorkerBase) Run() {
 	for shouldRun {
 		for varName, valueConfig := range worker.configWorkload.EndOnVarValue {
 			if compare_res, err := Utils.CompareInterface(valueConfig.Op, worker.calculatedVars[varName], worker.ParseField(valueConfig)); err != nil {
-				log.Panicln(fmt.Sprintf("Workload %s found end_on_value config with unsupported op or missmatched value types. config=%s", worker.configWorkload.Name, valueConfig))
+				log.Panicln(fmt.Sprintf("Workload %s found end_on_value config with unsupported op or missmatched value types. config=%+v", worker.configWorkload.Name, valueConfig))
 			} else {
 				shouldRun = !compare_res
 			}
@@ -109,7 +109,7 @@ func (worker *WorkerBase) RunIO() {
 	worker.worker.InitIO()
 	startTime := time.Now()
 	worker.worker.SendIO()
-	worker.currentIOLatency = time.Now().Sub(startTime).Nanoseconds() / 1000
+	worker.currentIOLatency = time.Since(startTime).Nanoseconds() / 1000
 	worker.currentIOStatus = worker.worker.GetIOStatus()
 	worker.worker.DebugLogCurrentIO(nil)
 	if _, ok := worker.configWorkload.AllowedStatusMap[worker.currentIOStatus]; !ok {
@@ -128,7 +128,7 @@ func (worker *WorkerBase) PanicLogCurrentIO(err error) {
 }
 
 func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.CalculatedVars) {
-	worker.calculatedVars = make(Config.CalculatedVars, 0)
+	worker.calculatedVars = make(Config.CalculatedVars)
 	for key, val := range calculatedWorkloadConstVars {
 		worker.calculatedVars[key] = val
 	}
@@ -152,12 +152,12 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 			log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 		}
 		worker.calculatedVars[varName] = varConfig.InitValue
-		worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+		worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.GetVarsConfigLogPrefix())
 	}
 
 	if worker.configWorkload.Vars.Random != nil {
-		worker.calculatedVars.CalculatedRandomVarsConfig(worker.configWorkload.Name, worker.configWorkload.Vars.Random.WorkerOnce, true)
-		worker.calculatedVars.CalculatedRandomVarsConfig(worker.configWorkload.Name, worker.configWorkload.Vars.Random.Each, true)
+		worker.calculatedVars.CalculatedRandomVarsConfig(worker.configWorkload.GetVarsConfigLogPrefix(), worker.configWorkload.Vars.Random.WorkerOnce, true)
+		worker.calculatedVars.CalculatedRandomVarsConfig(worker.configWorkload.GetVarsConfigLogPrefix(), worker.configWorkload.Vars.Random.Each, true)
 	}
 
 	if worker.configWorkload.Vars.Enum != nil {
@@ -166,7 +166,7 @@ func (worker *WorkerBase) InitCalculatedVars(calculatedWorkloadConstVars Config.
 				log.Panicln(fmt.Sprintf("Workload %s contain 2 vars with same name %s", worker.configWorkload.Name, varName))
 			}
 			worker.calculatedVars[varName] = varConfig.MinValue
-			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.GetVarsConfigLogPrefix())
 			if _, ok := worker.calculatedVars[varName].(float64); ok {
 				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
 			}
@@ -230,7 +230,7 @@ func (worker *WorkerBase) CalculateNextVars() {
 	}
 
 	if worker.configWorkload.Vars.Random != nil {
-		worker.calculatedVars.CalculatedRandomVarsConfig(worker.configWorkload.Name, worker.configWorkload.Vars.Random.Each, false)
+		worker.calculatedVars.CalculatedRandomVarsConfig(worker.configWorkload.GetVarsConfigLogPrefix(), worker.configWorkload.Vars.Random.Each, false)
 	}
 
 	if worker.configWorkload.Vars.Enum != nil {
@@ -244,7 +244,7 @@ func (worker *WorkerBase) CalculateNextVars() {
 
 		for varName, varConfig := range worker.configWorkload.Vars.Enum.WorkloadSimEach {
 			worker.calculatedVars[varName] = worker.calculatedVars[varName].(int64) + worker.configWorkload.NumWorkers
-			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.GetVarsConfigLogPrefix())
 			if _, ok := worker.calculatedVars[varName].(float64); ok {
 				worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
 			}
@@ -253,7 +253,7 @@ func (worker *WorkerBase) CalculateNextVars() {
 		for varName, varConfig := range worker.configWorkload.Vars.Enum.OnTime {
 			if worker.currentRunTime%varConfig.Interval == 0 {
 				worker.calculatedVars[varName] = varConfig.MinValue + worker.currentRunTime
-				worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+				worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.GetVarsConfigLogPrefix())
 				if _, ok := worker.calculatedVars[varName].(float64); ok {
 					worker.calculatedVars[varName] = int64(worker.calculatedVars[varName].(float64))
 				}
@@ -267,7 +267,7 @@ func (worker *WorkerBase) CalculateNextVars() {
 	if worker.configWorkload.Vars.ConfigField != nil {
 		for varName, varConfig := range worker.configWorkload.Vars.ConfigField {
 			worker.calculatedVars[varName] = worker.ParseField(varConfig)
-			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.GetVarsConfigLogPrefix())
 		}
 	}
 }
@@ -312,37 +312,51 @@ func (worker *WorkerBase) UpdateResponseVars(statusStr string, responseData stri
 				responseValue = responseData
 			} else if responseHaveValidJson {
 				if responseValue, err = jsonQuery.Interface(varConfig.FieldPath...); err != nil {
-					err = errors.New(fmt.Sprintf("failed to find response_value var %s in response", varName))
+					err = fmt.Errorf("failed to find response_value var %s in response", varName)
 					worker.worker.DebugLogCurrentIO(err)
 					continue
 				}
 			} else {
-				err = errors.New(fmt.Sprintf("failed to find response_value var %s in response", varName))
+				err = fmt.Errorf("failed to find response_value var %s in response", varName)
 				worker.worker.DebugLogCurrentIO(err)
 				continue
 			}
 
 			worker.calculatedVars[varName] = responseValue
+			expectedValueFound := false
+			expectedValueRequired := false
 			if len(varConfig.ExpectedValues) > 0 {
-				expectedValueFound := false
+				expectedValueRequired = true
 				for _, expectedValuesConfig := range varConfig.ExpectedValues {
-					if worker.ParseField(expectedValuesConfig) == responseValue {
+					if compare_res, err := Utils.CompareInterface("==", worker.ParseField(expectedValuesConfig), responseValue); err == nil && compare_res {
 						expectedValueFound = true
 						break
 					}
 				}
-				if !expectedValueFound {
-					err = errors.New(fmt.Sprintf("failed to find response_value var %s in response", varName))
-					worker.worker.PanicLogCurrentIO(err)
+			}
+			if !expectedValueFound && len(varConfig.ExpectedValuesArrayVars) > 0 {
+				expectedValueRequired = true
+				for _, varName := range varConfig.ExpectedValuesArrayVars {
+					expectedValuesArray := worker.calculatedVars[varName].([]interface{})
+					for _, expectedValue := range expectedValuesArray {
+						if compare_res, err := Utils.CompareInterface("==", expectedValue, responseValue); err == nil && compare_res {
+							expectedValueFound = true
+							break
+						}
+					}
 				}
 			}
-			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.Name)
+			if expectedValueRequired && !expectedValueFound {
+				err = fmt.Errorf("failed to find response_value var %s in response", varName)
+				worker.worker.PanicLogCurrentIO(err)
+			}
+			worker.calculatedVars.RunTriggers(varConfig.Triggers, varName, worker.configWorkload.GetVarsConfigLogPrefix())
 		}
 	}
 }
 
 func (worker *WorkerBase) ParseField(fieldConfig *Config.ConfigField) interface{} {
-	return Config.ParseField(fieldConfig, worker.calculatedVars, worker.configWorkload.Name)
+	return Config.ParseField(fieldConfig, worker.calculatedVars, worker.configWorkload.GetVarsConfigLogPrefix())
 }
 
 func (worker *WorkerBase) GetRequestUid() uint64 {

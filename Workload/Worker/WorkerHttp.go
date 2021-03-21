@@ -77,8 +77,8 @@ func (worker *WorkerHttp) DebugLogCurrentIO(err error) {
 
 func (worker *WorkerHttp) PanicLogCurrentIO(err error) {
 	if err != nil {
-		log.Panicln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d err=%s request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, err.Error(), worker.request, worker.response))
+		log.Panicln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d err=%s request=\n%+v\n\nresponse=\n%+v\ncalculatedVars=%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, err.Error(), worker.request, worker.response, worker.calculatedVars))
 	} else {
-		log.Panicln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d request=\n%+v\n\nresponse=\n%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, worker.request, worker.response))
+		log.Panicln(fmt.Sprintf("workload=%s worker=%d status=%s latency=%d request=\n%+v\n\nresponse=\n%+v\ncalculatedVars=%+v\n", worker.configWorkload.Name, worker.workerIndex, worker.currentIOStatus, worker.currentIOLatency, worker.request, worker.response, worker.calculatedVars))
 	}
 }

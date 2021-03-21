@@ -24,20 +24,22 @@ type ConfigVarsFile struct {
 }
 
 type ConfigVarsRandomOrEnum struct {
-	Type     string               `json:"type"`
-	Length   int                  `json:"length"`
-	MinValue int64                `json:"min_value"`
-	MaxValue int64                `json:"max_value"`
-	Interval int64                `json:"interval"`
-	Triggers []*ConfigVarsTrigger `json:"triggers"`
+	Type        string               `json:"type"`
+	Length      int                  `json:"length"`
+	MinValue    int64                `json:"min_value"`
+	MaxValue    int64                `json:"max_value"`
+	Interval    int64                `json:"interval"`
+	Triggers    []*ConfigVarsTrigger `json:"triggers"`
+	ArrayLength int64                `json:"array_length"`
 }
 
 type ConfigVarResponseValue struct {
-	UpdateOnStatus []string             `json:"update_on_status"`
-	FieldPath      []string             `json:"field_path"`
-	InitValue      interface{}          `json:"init_value"`
-	ExpectedValues []*ConfigField       `json:"expected_values"`
-	Triggers       []*ConfigVarsTrigger `json:"triggers"`
+	UpdateOnStatus          []string             `json:"update_on_status"`
+	FieldPath               []string             `json:"field_path"`
+	InitValue               interface{}          `json:"init_value"`
+	ExpectedValues          []*ConfigField       `json:"expected_values"`
+	ExpectedValuesArrayVars []string             `json:"expected_values_array_vars"`
+	Triggers                []*ConfigVarsTrigger `json:"triggers"`
 }
 
 type ConfigVarsDist struct {
@@ -53,12 +55,14 @@ type ConfigVarsRandom struct {
 	Each       ConfigVarsRandomOrEnumMap `json:"each"`
 	OnTime     ConfigVarsRandomOrEnumMap `json:"on_time"`
 	OnInterval ConfigVarsRandomOrEnumMap `json:"on_interval"`
+	ArrayOnce  ConfigVarsRandomOrEnumMap `json:"array_once"`
 }
 
 type ConfigVarsEnum struct {
 	WorkloadSimEach ConfigVarsRandomOrEnumMap `json:"workload_sim_each"`
 	WorkerEach      ConfigVarsRandomOrEnumMap `json:"worker_each"`
 	OnTime          ConfigVarsRandomOrEnumMap `json:"on_time"`
+	ArrayOnce       ConfigVarsRandomOrEnumMap `json:"array_once"`
 }
 
 type ConfigVars struct {
@@ -117,6 +121,7 @@ type ConfigWorkload struct {
 }
 
 type ConfigIoBlaster struct {
+	Vars           *ConfigVars       `json:"vars"`
 	Workloads      []*ConfigWorkload `json:"workloads"`
 	WorkloadsMap   map[string]*ConfigWorkload
 	CurrentRunTime int64
