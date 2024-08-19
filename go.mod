@@ -8,6 +8,6 @@ require (
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/jmoiron/jsonq v0.0.0-20150511023944-e874b168d07e
 	github.com/sirupsen/logrus v1.7.0
-	github.com/valyala/fasthttp v1.17.0
-	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9
+	github.com/valyala/fasthttp v1.34.0
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 )
